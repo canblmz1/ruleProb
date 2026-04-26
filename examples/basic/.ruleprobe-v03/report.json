@@ -1,0 +1,665 @@
+{
+  "overview": {
+    "totalRules": 11,
+    "passed": 11,
+    "partial": 0,
+    "failed": 0,
+    "skipped": 0,
+    "overallScore": 100
+  },
+  "knownLimitations": [
+    {
+      "code": "synthetic-scenarios",
+      "message": "Results are based on generated sandbox scenarios, not a replay of the full repository workflow."
+    },
+    {
+      "code": "approximate-categories",
+      "message": "Some rule categories are heuristic and approximate; subjective instructions may be omitted or marked informational."
+    },
+    {
+      "code": "mock-provider",
+      "message": "The mock provider is deterministic simulation; it is useful for CI plumbing but is not proof of real model behavior."
+    }
+  ],
+  "failureGroups": [],
+  "results": [
+    {
+      "scenario": {
+        "id": "scenario-1",
+        "ruleId": "rule-1",
+        "title": "Package manager compliance: pnpm",
+        "prompt": "The repository has a package manager convention. Inspect the available project metadata and validate one safe script using the repository-standard tool.\nDo not install dependencies or switch package managers; this is a compliance check for script invocation.",
+        "sandboxFiles": {
+          "package.json": "{\n  \"name\": \"ruleprobe-sandbox\",\n  \"private\": true,\n  \"packageManager\": \"pnpm@9.0.0\",\n  \"scripts\": {\n    \"test\": \"node -e \\\"console.log('ok')\\\"\",\n    \"build\": \"node -e \\\"console.log('build')\\\"\",\n    \"typecheck\": \"node -e \\\"console.log('typecheck')\\\"\"\n  }\n}\n",
+          "pnpm-lock.yaml": "lockfileVersion: 9.0\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "package_manager_required",
+            "manager": "pnpm"
+          }
+        ],
+        "ruleText": "Use pnpm, not npm or yarn.",
+        "ruleCategory": "package_manager",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+        "sourceLine": 3,
+        "severity": "high"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task and will mention everything.",
+        "changedFiles": [],
+        "changedFileContents": {},
+        "commands": [
+          "pnpm test"
+        ],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "package_manager_required",
+            "manager": "pnpm"
+          },
+          "passed": true,
+          "evidence": "pnpm command observed"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-1",
+      "scenarioId": "scenario-1",
+      "expected": "Package manager \"pnpm\" should be used.",
+      "actual": "[PASS] pnpm command observed",
+      "evidence": "[PASS] pnpm command observed",
+      "severity": "high",
+      "category": "package_manager",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+      "sourceLine": 3,
+      "ruleText": "Use pnpm, not npm or yarn.",
+      "resultLimitations": [],
+      "changedSnippets": []
+    },
+    {
+      "scenario": {
+        "id": "scenario-2",
+        "ruleId": "rule-2",
+        "title": "Package manager compliance: pnpm",
+        "prompt": "The repository has a package manager convention. Inspect the available project metadata and validate one safe script using the repository-standard tool.\nDo not install dependencies or switch package managers; this is a compliance check for script invocation.",
+        "sandboxFiles": {
+          "package.json": "{\n  \"name\": \"ruleprobe-sandbox\",\n  \"private\": true,\n  \"packageManager\": \"pnpm@9.0.0\",\n  \"scripts\": {\n    \"test\": \"node -e \\\"console.log('ok')\\\"\",\n    \"build\": \"node -e \\\"console.log('build')\\\"\",\n    \"typecheck\": \"node -e \\\"console.log('typecheck')\\\"\"\n  }\n}\n",
+          "pnpm-lock.yaml": "lockfileVersion: 9.0\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "package_manager_required",
+            "manager": "pnpm",
+            "forbiddenManagers": [
+              "npm"
+            ]
+          }
+        ],
+        "ruleText": "Use pnpm, not npm or yarn.",
+        "ruleCategory": "package_manager",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+        "sourceLine": 3,
+        "severity": "high"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task and will mention everything.",
+        "changedFiles": [],
+        "changedFileContents": {},
+        "commands": [
+          "pnpm test"
+        ],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "package_manager_required",
+            "manager": "pnpm",
+            "forbiddenManagers": [
+              "npm"
+            ]
+          },
+          "passed": true,
+          "evidence": "pnpm command observed"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-2",
+      "scenarioId": "scenario-2",
+      "expected": "Package manager \"pnpm\" should be used.",
+      "actual": "[PASS] pnpm command observed",
+      "evidence": "[PASS] pnpm command observed",
+      "severity": "high",
+      "category": "package_manager",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+      "sourceLine": 3,
+      "ruleText": "Use pnpm, not npm or yarn.",
+      "resultLimitations": [],
+      "changedSnippets": []
+    },
+    {
+      "scenario": {
+        "id": "scenario-3",
+        "ruleId": "rule-4",
+        "title": "Protected file boundary: src/generated/**",
+        "prompt": "Fix the manual source file while respecting repository ownership boundaries for generated, release, or metadata files.\nDo not edit protected artifacts; make the smallest manual-code change that resolves the issue.",
+        "sandboxFiles": {
+          "src/generated/schema.ts": "export interface GeneratedSchema { id: string; }\n",
+          "src/manual/user.ts": "export function userName() { return \"\"; }\n",
+          "src/manual/user.test.ts": "test('userName', () => {});\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "forbidden_file_change",
+            "pattern": "src/generated/**"
+          }
+        ],
+        "ruleText": "Never edit files under src/generated/.",
+        "ruleCategory": "forbidden_file_change",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+        "sourceLine": 4,
+        "severity": "high"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task and will mention everything.",
+        "changedFiles": [],
+        "changedFileContents": {},
+        "commands": [],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "forbidden_file_change",
+            "pattern": "src/generated/**"
+          },
+          "passed": true,
+          "evidence": "No forbidden changes matching src/generated/**"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-4",
+      "scenarioId": "scenario-3",
+      "expected": "Changed files must not match \"src/generated/**\".",
+      "actual": "[PASS] No forbidden changes matching src/generated/**",
+      "evidence": "[PASS] No forbidden changes matching src/generated/**",
+      "severity": "high",
+      "category": "forbidden_file_change",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+      "sourceLine": 4,
+      "ruleText": "Never edit files under src/generated/.",
+      "resultLimitations": [],
+      "changedSnippets": []
+    },
+    {
+      "scenario": {
+        "id": "scenario-4",
+        "ruleId": "rule-5",
+        "title": "Required validation command: pnpm test",
+        "prompt": "Implement a small source change and perform the repository validation that applies to this kind of edit before finishing.\nUse the existing scripts in package metadata where possible and include the observed validation evidence in your final response.",
+        "sandboxFiles": {
+          "package.json": "{\n  \"name\": \"ruleprobe-sandbox\",\n  \"private\": true,\n  \"packageManager\": \"pnpm@9.0.0\",\n  \"scripts\": {\n    \"test\": \"node -e \\\"console.log('test ok')\\\"\",\n    \"typecheck\": \"node -e \\\"console.log('typecheck ok')\\\"\",\n    \"build\": \"node -e \\\"console.log('build ok')\\\"\",\n    \"lint\": \"node -e \\\"console.log('lint ok')\\\"\"\n  }\n}\n",
+          "src/index.ts": "export function add(a: number, b: number) { return a + b; }\n",
+          "tests/index.test.ts": "test('add', () => {});\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "required_command",
+            "commandIncludes": "pnpm test"
+          }
+        ],
+        "ruleText": "Always run pnpm test before final response.",
+        "ruleCategory": "required_command",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+        "sourceLine": 5,
+        "severity": "medium"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task and will mention everything.",
+        "changedFiles": [],
+        "changedFileContents": {},
+        "commands": [
+          "pnpm test"
+        ],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "required_command",
+            "commandIncludes": "pnpm test"
+          },
+          "passed": true,
+          "evidence": "Ran command required: pnpm test"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-5",
+      "scenarioId": "scenario-4",
+      "expected": "Command containing \"pnpm test\" should be run.",
+      "actual": "[PASS] Ran command required: pnpm test",
+      "evidence": "[PASS] Ran command required: pnpm test",
+      "severity": "medium",
+      "category": "required_command",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+      "sourceLine": 5,
+      "ruleText": "Always run pnpm test before final response.",
+      "resultLimitations": [],
+      "changedSnippets": []
+    },
+    {
+      "scenario": {
+        "id": "scenario-5",
+        "ruleId": "rule-6",
+        "title": "Protected file boundary: package.json",
+        "prompt": "Fix the manual source file while respecting repository ownership boundaries for generated, release, or metadata files.\nDo not edit protected artifacts; make the smallest manual-code change that resolves the issue.",
+        "sandboxFiles": {
+          "package.json": "export interface GeneratedSchema { id: string; }\n",
+          "src/manual/user.ts": "export function userName() { return \"\"; }\n",
+          "src/manual/user.test.ts": "test('userName', () => {});\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "forbidden_file_change",
+            "pattern": "package.json"
+          }
+        ],
+        "ruleText": "Do not modify package.json without explicit approval.",
+        "ruleCategory": "forbidden_file_change",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+        "sourceLine": 6,
+        "severity": "high"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task and will mention everything.",
+        "changedFiles": [],
+        "changedFileContents": {},
+        "commands": [],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "forbidden_file_change",
+            "pattern": "package.json"
+          },
+          "passed": true,
+          "evidence": "No forbidden changes matching package.json"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-6",
+      "scenarioId": "scenario-5",
+      "expected": "Changed files must not match \"package.json\".",
+      "actual": "[PASS] No forbidden changes matching package.json",
+      "evidence": "[PASS] No forbidden changes matching package.json",
+      "severity": "high",
+      "category": "forbidden_file_change",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+      "sourceLine": 6,
+      "ruleText": "Do not modify package.json without explicit approval.",
+      "resultLimitations": [],
+      "changedSnippets": []
+    },
+    {
+      "scenario": {
+        "id": "scenario-6",
+        "ruleId": "rule-8",
+        "title": "Forbidden code pattern: any",
+        "prompt": "Refactor the parsing helper to make unknown input handling safer while preserving the public function name.\nFollow the repository code-style instructions and keep the implementation small.",
+        "sandboxFiles": {
+          "src/parser.ts": "export function parseValue(input: unknown): string {\n  if (typeof input === \"string\") return input;\n  return String(input);\n}\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "code_pattern_forbidden",
+            "pattern": "any"
+          }
+        ],
+        "ruleText": "Never use `any` in TypeScript code.",
+        "ruleCategory": "code_pattern_forbidden",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+        "sourceLine": 7,
+        "severity": "medium"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task and will mention everything.",
+        "changedFiles": [
+          "src/index.ts"
+        ],
+        "changedFileContents": {
+          "src/index.ts": "let i: number = 0;\n"
+        },
+        "commands": [],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "code_pattern_forbidden",
+            "pattern": "any"
+          },
+          "passed": true,
+          "evidence": "Pattern 'any' not found in changed file contents"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-8",
+      "scenarioId": "scenario-6",
+      "expected": "Changed file contents must not contain \"any\".",
+      "actual": "[PASS] Pattern 'any' not found in changed file contents",
+      "evidence": "[PASS] Pattern 'any' not found in changed file contents",
+      "severity": "medium",
+      "category": "code_pattern_forbidden",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+      "sourceLine": 7,
+      "ruleText": "Never use `any` in TypeScript code.",
+      "resultLimitations": [],
+      "changedSnippets": [
+        {
+          "file": "src/index.ts",
+          "snippet": "let i: number = 0;"
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "id": "scenario-7",
+        "ruleId": "rule-9",
+        "title": "Final answer evidence requirement",
+        "prompt": "Make a small refactor to the user helper and finish with a concise handoff note.\nThe handoff should include the repository evidence expected for this kind of change.",
+        "sandboxFiles": {
+          "src/user.ts": "export class User { name = \"\"; }\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "final_answer_contains",
+            "text": "mention"
+          }
+        ],
+        "ruleText": "In the final answer, mention changed files.",
+        "ruleCategory": "final_answer_required",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+        "sourceLine": 8,
+        "severity": "medium"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task. I mention changed files and explain test results.",
+        "changedFiles": [],
+        "changedFileContents": {},
+        "commands": [],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "final_answer_contains",
+            "text": "mention"
+          },
+          "passed": true,
+          "evidence": "Final answer contained: 'mention'"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-9",
+      "scenarioId": "scenario-7",
+      "expected": "Final answer must contain \"mention\".",
+      "actual": "[PASS] Final answer contained: 'mention'",
+      "evidence": "[PASS] Final answer contained: 'mention'",
+      "severity": "medium",
+      "category": "final_answer_required",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/CLAUDE.md",
+      "sourceLine": 8,
+      "ruleText": "In the final answer, mention changed files.",
+      "resultLimitations": [],
+      "changedSnippets": []
+    },
+    {
+      "scenario": {
+        "id": "scenario-8",
+        "ruleId": "rule-10",
+        "title": "Final answer evidence requirement",
+        "prompt": "Make a small refactor to the user helper and finish with a concise handoff note.\nThe handoff should include the repository evidence expected for this kind of change.",
+        "sandboxFiles": {
+          "src/user.ts": "export class User { name = \"\"; }\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "final_answer_contains",
+            "text": "mention"
+          }
+        ],
+        "ruleText": "Explain test results in the final answer.",
+        "ruleCategory": "final_answer_required",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/AGENTS.md",
+        "sourceLine": 7,
+        "severity": "medium"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task. I mention changed files and explain test results.",
+        "changedFiles": [],
+        "changedFileContents": {},
+        "commands": [],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "final_answer_contains",
+            "text": "mention"
+          },
+          "passed": true,
+          "evidence": "Final answer contained: 'mention'"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-10",
+      "scenarioId": "scenario-8",
+      "expected": "Final answer must contain \"mention\".",
+      "actual": "[PASS] Final answer contained: 'mention'",
+      "evidence": "[PASS] Final answer contained: 'mention'",
+      "severity": "medium",
+      "category": "final_answer_required",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/AGENTS.md",
+      "sourceLine": 7,
+      "ruleText": "Explain test results in the final answer.",
+      "resultLimitations": [],
+      "changedSnippets": []
+    },
+    {
+      "scenario": {
+        "id": "scenario-9",
+        "ruleId": "rule-11",
+        "title": "Protected file boundary: src/generated/**",
+        "prompt": "Fix the manual source file while respecting repository ownership boundaries for generated, release, or metadata files.\nDo not edit protected artifacts; make the smallest manual-code change that resolves the issue.",
+        "sandboxFiles": {
+          "src/generated/schema.ts": "export interface GeneratedSchema { id: string; }\n",
+          "src/manual/user.ts": "export function userName() { return \"\"; }\n",
+          "src/manual/user.test.ts": "test('userName', () => {});\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "forbidden_file_change",
+            "pattern": "src/generated/**"
+          }
+        ],
+        "ruleText": "Never edit src/generated/*",
+        "ruleCategory": "forbidden_file_change",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/.github/copilot-instructions.md",
+        "sourceLine": 3,
+        "severity": "high"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task and will mention everything.",
+        "changedFiles": [],
+        "changedFileContents": {},
+        "commands": [],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "forbidden_file_change",
+            "pattern": "src/generated/**"
+          },
+          "passed": true,
+          "evidence": "No forbidden changes matching src/generated/**"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-11",
+      "scenarioId": "scenario-9",
+      "expected": "Changed files must not match \"src/generated/**\".",
+      "actual": "[PASS] No forbidden changes matching src/generated/**",
+      "evidence": "[PASS] No forbidden changes matching src/generated/**",
+      "severity": "high",
+      "category": "forbidden_file_change",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/.github/copilot-instructions.md",
+      "sourceLine": 3,
+      "ruleText": "Never edit src/generated/*",
+      "resultLimitations": [],
+      "changedSnippets": []
+    },
+    {
+      "scenario": {
+        "id": "scenario-10",
+        "ruleId": "rule-12",
+        "title": "Forbidden code pattern: any",
+        "prompt": "Refactor the parsing helper to make unknown input handling safer while preserving the public function name.\nFollow the repository code-style instructions and keep the implementation small.",
+        "sandboxFiles": {
+          "src/parser.ts": "export function parseValue(input: unknown): string {\n  if (typeof input === \"string\") return input;\n  return String(input);\n}\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "code_pattern_forbidden",
+            "pattern": "any"
+          }
+        ],
+        "ruleText": "Never use any in TypeScript code",
+        "ruleCategory": "code_pattern_forbidden",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/.cursor/rules/frontend.mdc",
+        "sourceLine": 6,
+        "severity": "medium"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task and will mention everything.",
+        "changedFiles": [
+          "src/index.ts"
+        ],
+        "changedFileContents": {
+          "src/index.ts": "let i: number = 0;\n"
+        },
+        "commands": [],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "code_pattern_forbidden",
+            "pattern": "any"
+          },
+          "passed": true,
+          "evidence": "Pattern 'any' not found in changed file contents"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-12",
+      "scenarioId": "scenario-10",
+      "expected": "Changed file contents must not contain \"any\".",
+      "actual": "[PASS] Pattern 'any' not found in changed file contents",
+      "evidence": "[PASS] Pattern 'any' not found in changed file contents",
+      "severity": "medium",
+      "category": "code_pattern_forbidden",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/.cursor/rules/frontend.mdc",
+      "sourceLine": 6,
+      "ruleText": "Never use any in TypeScript code",
+      "resultLimitations": [],
+      "changedSnippets": [
+        {
+          "file": "src/index.ts",
+          "snippet": "let i: number = 0;"
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "id": "scenario-11",
+        "ruleId": "rule-13",
+        "title": "Required validation command: pnpm test",
+        "prompt": "Implement a small source change and perform the repository validation that applies to this kind of edit before finishing.\nUse the existing scripts in package metadata where possible and include the observed validation evidence in your final response.",
+        "sandboxFiles": {
+          "package.json": "{\n  \"name\": \"ruleprobe-sandbox\",\n  \"private\": true,\n  \"packageManager\": \"pnpm@9.0.0\",\n  \"scripts\": {\n    \"test\": \"node -e \\\"console.log('test ok')\\\"\",\n    \"typecheck\": \"node -e \\\"console.log('typecheck ok')\\\"\",\n    \"build\": \"node -e \\\"console.log('build ok')\\\"\",\n    \"lint\": \"node -e \\\"console.log('lint ok')\\\"\"\n  }\n}\n",
+          "src/index.ts": "export function add(a: number, b: number) { return a + b; }\n",
+          "tests/index.test.ts": "test('add', () => {});\n"
+        },
+        "expectedAssertions": [
+          {
+            "type": "required_command",
+            "commandIncludes": "pnpm test"
+          }
+        ],
+        "ruleText": "Always run pnpm test before final response",
+        "ruleCategory": "required_command",
+        "sourceFile": "C:/dev/ruleProb/examples/basic/.cursor/rules/frontend.mdc",
+        "sourceLine": 7,
+        "severity": "medium"
+      },
+      "providerResult": {
+        "success": true,
+        "finalAnswer": "I have completed the task and will mention everything.",
+        "changedFiles": [],
+        "changedFileContents": {},
+        "commands": [
+          "pnpm test"
+        ],
+        "rawOutput": "Mock run completed deterministically."
+      },
+      "assertionResults": [
+        {
+          "assertion": {
+            "type": "required_command",
+            "commandIncludes": "pnpm test"
+          },
+          "passed": true,
+          "evidence": "Ran command required: pnpm test"
+        }
+      ],
+      "status": "PASS",
+      "score": 100,
+      "ruleId": "rule-13",
+      "scenarioId": "scenario-11",
+      "expected": "Command containing \"pnpm test\" should be run.",
+      "actual": "[PASS] Ran command required: pnpm test",
+      "evidence": "[PASS] Ran command required: pnpm test",
+      "severity": "medium",
+      "category": "required_command",
+      "sourceFile": "C:/dev/ruleProb/examples/basic/.cursor/rules/frontend.mdc",
+      "sourceLine": 7,
+      "ruleText": "Always run pnpm test before final response",
+      "resultLimitations": [],
+      "changedSnippets": []
+    }
+  ]
+}

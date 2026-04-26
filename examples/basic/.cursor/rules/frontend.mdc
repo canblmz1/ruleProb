@@ -1,0 +1,7 @@
+---
+description: Frontend specific rules
+globs: src/frontend/**/*
+---
+
+- Never use any in TypeScript code
+- Always run pnpm test before final response

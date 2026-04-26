@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Built output — install from npm, build from source for dev
+dist/
+
+# Environment — copy .env.example and fill in
+.env
+.env.local
+.env.*.local
+
+# Runtime output
+.ruleprobe/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude AI session files
+.claude/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+coverage/
+tmp/
+temp/

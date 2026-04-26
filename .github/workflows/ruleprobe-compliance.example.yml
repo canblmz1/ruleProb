@@ -1,0 +1,67 @@
+name: RuleProbe Compliance Example
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ruleprobe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for `compare --base`
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: RuleProbe doctor
+        run: pnpm dev doctor
+
+      - name: RuleProbe compliance gate (deterministic + mock)
+        # Mock provider is now mixed (~80/10/10) so the score is honestly
+        # below 100. fail-below 70 keeps a meaningful signal without
+        # requiring real-provider credentials.
+        run: pnpm dev run . --provider mock --extractor deterministic --fail-below 70
+
+      - name: Optional extraction comparison (Gemini)
+        run: pnpm dev compare . --provider gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        continue-on-error: true
+
+      - name: Optional extraction comparison (OpenRouter)
+        run: pnpm dev compare . --provider openrouter
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        continue-on-error: true
+
+      - name: Optional extraction comparison (OpenCode Go)
+        run: pnpm dev compare . --provider opencode-go --extractor hybrid
+        env:
+          OPENCODE_GO_API_KEY: ${{ secrets.OPENCODE_GO_API_KEY }}
+          OPENCODE_GO_MODEL: ${{ vars.OPENCODE_GO_MODEL }}
+        continue-on-error: true
+
+      - name: Compare current branch vs main (regression tracking)
+        if: github.event_name == 'pull_request'
+        run: pnpm dev compare . --base origin/${{ github.base_ref }} --extractor deterministic
+        continue-on-error: true
+
+      - name: Upload RuleProbe reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ruleprobe-report
+          path: .ruleprobe/

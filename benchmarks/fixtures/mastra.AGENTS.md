@@ -1,0 +1,3 @@
+- NEVER commit your code directly.
+- NEVER run `git push`.
+- ALWAYS run `pnpm test` in the specific package folder.

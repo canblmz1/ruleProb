@@ -1,0 +1,2 @@
+- do not run interactive commands like `pnpm create`.
+- always run `pnpm build` if you change public APIs.

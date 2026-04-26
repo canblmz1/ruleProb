@@ -1,0 +1,70 @@
+{
+  "name": "ruleprobe",
+  "version": "0.3.0",
+  "description": "Test whether your repo AI instructions actually survive execution.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "docs",
+    "examples",
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "benchmark",
+    "cli",
+    "compliance",
+    "claude",
+    "instructions",
+    "testing"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "ruleprobe": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "benchmark": "tsx src/cli/index.ts benchmark --fixtures-only",
+    "pack:check": "npm pack --dry-run --json",
+    "dev": "tsx src/cli/index.ts",
+    "demo": "tsx src/cli/index.ts run examples/basic --provider mock",
+    "demo:dry": "tsx src/cli/index.ts run examples/basic --provider dry-run",
+    "demo:openrouter": "tsx src/cli/index.ts run examples/basic --provider openrouter",
+    "list-rules": "tsx src/cli/index.ts list-rules examples/basic"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "dotenv": "^17.4.2",
+    "execa": "^8.0.1",
+    "fast-glob": "^3.3.2",
+    "fs-extra": "^11.2.0",
+    "minimatch": "^9.0.3"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.11.24",
+    "tsup": "^8.0.2",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.1"
+  }
+}

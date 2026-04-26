@@ -1,0 +1,163 @@
+{
+  "repos": [
+    {
+      "name": "better-auth",
+      "url": "https://github.com/better-auth/better-auth.git",
+      "instructionFiles": ["CLAUDE.md"],
+      "fixture": "benchmarks/fixtures/better-auth.CLAUDE.md",
+      "expected": {
+        "minRules": 10,
+        "categories": [
+          "package_manager",
+          "forbidden_command",
+          "required_command",
+          "code_pattern_forbidden",
+          "code_pattern_required"
+        ],
+        "mustContain": [
+          {
+            "category": "package_manager",
+            "textIncludes": "pnpm"
+          },
+          {
+            "category": "forbidden_command",
+            "commandIncludes": "pnpm test"
+          },
+          {
+            "category": "required_command",
+            "commandIncludes": "vitest"
+          },
+          {
+            "category": "required_command",
+            "commandIncludes": "pnpm typecheck"
+          },
+          {
+            "category": "code_pattern_forbidden",
+            "pattern": "any"
+          },
+          {
+            "category": "code_pattern_forbidden",
+            "pattern": "class"
+          }
+        ]
+      }
+    },
+    {
+      "name": "formatjs",
+      "url": "https://github.com/formatjs/formatjs.git",
+      "instructionFiles": ["CLAUDE.md"],
+      "fixture": "benchmarks/fixtures/formatjs.CLAUDE.md",
+      "expected": {
+        "minRules": 2,
+        "categories": ["forbidden_command", "required_command"],
+        "mustContain": [
+          { "category": "forbidden_command", "commandIncludes": "bazel clean" },
+          { "category": "required_command", "commandIncludes": "bazel build //..." }
+        ]
+      }
+    },
+    {
+      "name": "fern",
+      "url": "https://github.com/fern-api/fern.git",
+      "instructionFiles": ["CLAUDE.md"],
+      "fixture": "benchmarks/fixtures/fern.CLAUDE.md",
+      "expected": {
+        "minRules": 2,
+        "categories": ["code_pattern_forbidden"],
+        "mustContain": [
+          { "category": "code_pattern_forbidden", "pattern": "require(" },
+          { "category": "code_pattern_forbidden", "pattern": "export default" }
+        ]
+      }
+    },
+    {
+      "name": "restatedev",
+      "url": "https://github.com/restatedev/sdk-typescript.git",
+      "instructionFiles": ["AGENTS.md"],
+      "fixture": "benchmarks/fixtures/restatedev.AGENTS.md",
+      "expected": {
+        "minRules": 2,
+        "categories": ["forbidden_command", "required_command"],
+        "mustContain": [
+          { "category": "forbidden_command", "commandIncludes": "pnpm create" },
+          { "category": "required_command", "commandIncludes": "pnpm build" }
+        ]
+      }
+    },
+    {
+      "name": "mastra",
+      "url": "https://github.com/mastra-ai/mastra.git",
+      "instructionFiles": ["AGENTS.md"],
+      "fixture": "benchmarks/fixtures/mastra.AGENTS.md",
+      "expected": {
+        "minRules": 3,
+        "categories": ["forbidden_command", "required_command"],
+        "mustContain": [
+          { "category": "forbidden_command", "commandIncludes": "git push" },
+          { "category": "required_command", "commandIncludes": "pnpm test" }
+        ]
+      }
+    },
+    {
+      "name": "team-monorepo-style",
+      "url": "fixture-only",
+      "instructionFiles": ["AGENTS.md"],
+      "fixture": "benchmarks/fixtures/team-monorepo.AGENTS.md",
+      "expected": {
+        "minRules": 10,
+        "categories": [
+          "package_manager",
+          "forbidden_command",
+          "required_command",
+          "forbidden_file_change",
+          "required_file_change",
+          "code_pattern_forbidden",
+          "code_pattern_required"
+        ],
+        "mustContain": [
+          { "category": "package_manager", "textIncludes": "pnpm" },
+          { "category": "forbidden_command", "commandIncludes": "npm install" },
+          { "category": "required_command", "commandIncludes": "pnpm lint" },
+          { "category": "required_command", "commandIncludes": "pnpm typecheck" },
+          { "category": "forbidden_file_change", "pattern": "package.json" },
+          { "category": "forbidden_file_change", "pattern": "packages/web/src/generated/**" },
+          { "category": "required_file_change", "pattern": "test" },
+          { "category": "required_file_change", "pattern": "docs" },
+          { "category": "code_pattern_forbidden", "pattern": "any" },
+          { "category": "code_pattern_required", "pattern": "Uint8Array" },
+          { "category": "forbidden_command", "commandIncludes": "git commit" }
+        ],
+        "mustNotContain": [
+          { "category": "required_command", "commandIncludes": "Uint8Array" },
+          { "category": "required_command", "commandIncludes": "Buffer" },
+          { "category": "forbidden_command", "commandIncludes": "any" }
+        ]
+      }
+    },
+    {
+      "name": "copilot-workflow-style",
+      "url": "fixture-only",
+      "instructionFiles": [".github/copilot-instructions.md"],
+      "fixture": "benchmarks/fixtures/copilot-workflow.instructions.md",
+      "expected": {
+        "minRules": 7,
+        "categories": [
+          "package_manager",
+          "forbidden_command",
+          "required_command",
+          "forbidden_file_change",
+          "final_answer_required"
+        ],
+        "mustContain": [
+          { "category": "package_manager", "textIncludes": "pnpm" },
+          { "category": "forbidden_command", "commandIncludes": "git push" },
+          { "category": "required_command", "commandIncludes": "pnpm build" },
+          { "category": "required_command", "commandIncludes": "pnpm test" },
+          { "category": "forbidden_file_change", "pattern": ".github/workflows/release.yml" },
+          { "category": "forbidden_file_change", "pattern": "src/generated/**" },
+          { "category": "final_answer_required", "textIncludes": "mention test results" }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+- ALWAYS use pnpm. Never use npm or yarn.
+- NEVER run `pnpm test`. It is flaky.
+- Use `vitest` for all testing instead.
+- You must ensure `pnpm typecheck` passes before answering.
+- Never use `any` in TypeScript code. Use unknown.
+- Never use classes. Use plain objects and functions.
+- Bug fixes and new features must include tests.

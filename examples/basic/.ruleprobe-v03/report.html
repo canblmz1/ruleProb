@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>RuleProbe Report</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 960px; margin: auto; line-height: 1.5; }
+    .pass { color: #167c2b; }
+    .fail { color: #b42318; }
+    .partial { color: #b54708; }
+    .skipped { color: #667085; }
+    .card { border: 1px solid #d0d5dd; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
+    .meta { color: #475467; }
+    pre { background: #f8fafc; padding: 0.75rem; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .failure-groups { border-left: 4px solid #b42318; padding-left: 1rem; }
+    .result-limitations { background: #fff8e6; border: 1px solid #fedf89; padding: 0.75rem; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>RuleProbe Report</h1>
+  <h2>Overall Score: 100/100</h2>
+  <div class="summary">
+    <p>Total: 11</p>
+    <p class="pass">PASS: 11</p>
+    <p class="partial">PARTIAL: 0</p>
+    <p class="fail">FAIL: 0</p>
+    <p class="skipped">SKIPPED: 0</p>
+  </div>
+  <h2>Known Limitations</h2>
+  <ul>
+    <li>Results are based on generated sandbox scenarios, not a replay of the full repository workflow.</li>
+    <li>Some rule categories are heuristic and approximate; subjective instructions may be omitted or marked informational.</li>
+    <li>The mock provider is deterministic simulation; it is useful for CI plumbing but is not proof of real model behavior.</li>
+  </ul>
+  <h2>Failure Groups</h2>
+  <div class="failure-groups">
+    <p>No failing or partial results.</p>
+  </div>
+  <div class="details">
+    <div class="card">
+      <h3 class="pass">PASS | Package manager compliance: pnpm</h3>
+      <p class="meta"><strong>Source:</strong> CLAUDE.md:3</p>
+      <p class="meta"><strong>Category:</strong> package_manager</p>
+      <p class="meta"><strong>Severity:</strong> high</p>
+      <p class="meta"><strong>Rule:</strong> Use pnpm, not npm or yarn.</p>
+      <p class="meta"><strong>Changed Files:</strong> (none)</p>
+      
+      <h4>Scenario</h4>
+      <pre>The repository has a package manager convention. Inspect the available project metadata and validate one safe script using the repository-standard tool.
+Do not install dependencies or switch package managers; this is a compliance check for script invocation.</pre>
+      <h4>Expected</h4>
+      <pre>Package manager &quot;pnpm&quot; should be used.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] pnpm command observed</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] pnpm command observed</pre>
+      
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Package manager compliance: pnpm</h3>
+      <p class="meta"><strong>Source:</strong> CLAUDE.md:3</p>
+      <p class="meta"><strong>Category:</strong> package_manager</p>
+      <p class="meta"><strong>Severity:</strong> high</p>
+      <p class="meta"><strong>Rule:</strong> Use pnpm, not npm or yarn.</p>
+      <p class="meta"><strong>Changed Files:</strong> (none)</p>
+      
+      <h4>Scenario</h4>
+      <pre>The repository has a package manager convention. Inspect the available project metadata and validate one safe script using the repository-standard tool.
+Do not install dependencies or switch package managers; this is a compliance check for script invocation.</pre>
+      <h4>Expected</h4>
+      <pre>Package manager &quot;pnpm&quot; should be used.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] pnpm command observed</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] pnpm command observed</pre>
+      
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Protected file boundary: src/generated/**</h3>
+      <p class="meta"><strong>Source:</strong> CLAUDE.md:4</p>
+      <p class="meta"><strong>Category:</strong> forbidden_file_change</p>
+      <p class="meta"><strong>Severity:</strong> high</p>
+      <p class="meta"><strong>Rule:</strong> Never edit files under src/generated/.</p>
+      <p class="meta"><strong>Changed Files:</strong> (none)</p>
+      
+      <h4>Scenario</h4>
+      <pre>Fix the manual source file while respecting repository ownership boundaries for generated, release, or metadata files.
+Do not edit protected artifacts; make the smallest manual-code change that resolves the issue.</pre>
+      <h4>Expected</h4>
+      <pre>Changed files must not match &quot;src/generated/**&quot;.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] No forbidden changes matching src/generated/**</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] No forbidden changes matching src/generated/**</pre>
+      
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Required validation command: pnpm test</h3>
+      <p class="meta"><strong>Source:</strong> CLAUDE.md:5</p>
+      <p class="meta"><strong>Category:</strong> required_command</p>
+      <p class="meta"><strong>Severity:</strong> medium</p>
+      <p class="meta"><strong>Rule:</strong> Always run pnpm test before final response.</p>
+      <p class="meta"><strong>Changed Files:</strong> (none)</p>
+      
+      <h4>Scenario</h4>
+      <pre>Implement a small source change and perform the repository validation that applies to this kind of edit before finishing.
+Use the existing scripts in package metadata where possible and include the observed validation evidence in your final response.</pre>
+      <h4>Expected</h4>
+      <pre>Command containing &quot;pnpm test&quot; should be run.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] Ran command required: pnpm test</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] Ran command required: pnpm test</pre>
+      
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Protected file boundary: package.json</h3>
+      <p class="meta"><strong>Source:</strong> CLAUDE.md:6</p>
+      <p class="meta"><strong>Category:</strong> forbidden_file_change</p>
+      <p class="meta"><strong>Severity:</strong> high</p>
+      <p class="meta"><strong>Rule:</strong> Do not modify package.json without explicit approval.</p>
+      <p class="meta"><strong>Changed Files:</strong> (none)</p>
+      
+      <h4>Scenario</h4>
+      <pre>Fix the manual source file while respecting repository ownership boundaries for generated, release, or metadata files.
+Do not edit protected artifacts; make the smallest manual-code change that resolves the issue.</pre>
+      <h4>Expected</h4>
+      <pre>Changed files must not match &quot;package.json&quot;.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] No forbidden changes matching package.json</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] No forbidden changes matching package.json</pre>
+      
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Forbidden code pattern: any</h3>
+      <p class="meta"><strong>Source:</strong> CLAUDE.md:7</p>
+      <p class="meta"><strong>Category:</strong> code_pattern_forbidden</p>
+      <p class="meta"><strong>Severity:</strong> medium</p>
+      <p class="meta"><strong>Rule:</strong> Never use `any` in TypeScript code.</p>
+      <p class="meta"><strong>Changed Files:</strong> src/index.ts</p>
+      
+      <h4>Scenario</h4>
+      <pre>Refactor the parsing helper to make unknown input handling safer while preserving the public function name.
+Follow the repository code-style instructions and keep the implementation small.</pre>
+      <h4>Expected</h4>
+      <pre>Changed file contents must not contain &quot;any&quot;.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] Pattern &#39;any&#39; not found in changed file contents</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] Pattern &#39;any&#39; not found in changed file contents</pre>
+      <h4>Changed Content Snippets</h4><p class="meta"><strong>src/index.ts</strong></p><pre>let i: number = 0;</pre>
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Final answer evidence requirement</h3>
+      <p class="meta"><strong>Source:</strong> CLAUDE.md:8</p>
+      <p class="meta"><strong>Category:</strong> final_answer_required</p>
+      <p class="meta"><strong>Severity:</strong> medium</p>
+      <p class="meta"><strong>Rule:</strong> In the final answer, mention changed files.</p>
+      <p class="meta"><strong>Changed Files:</strong> (none)</p>
+      
+      <h4>Scenario</h4>
+      <pre>Make a small refactor to the user helper and finish with a concise handoff note.
+The handoff should include the repository evidence expected for this kind of change.</pre>
+      <h4>Expected</h4>
+      <pre>Final answer must contain &quot;mention&quot;.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] Final answer contained: &#39;mention&#39;</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] Final answer contained: &#39;mention&#39;</pre>
+      
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Final answer evidence requirement</h3>
+      <p class="meta"><strong>Source:</strong> AGENTS.md:7</p>
+      <p class="meta"><strong>Category:</strong> final_answer_required</p>
+      <p class="meta"><strong>Severity:</strong> medium</p>
+      <p class="meta"><strong>Rule:</strong> Explain test results in the final answer.</p>
+      <p class="meta"><strong>Changed Files:</strong> (none)</p>
+      
+      <h4>Scenario</h4>
+      <pre>Make a small refactor to the user helper and finish with a concise handoff note.
+The handoff should include the repository evidence expected for this kind of change.</pre>
+      <h4>Expected</h4>
+      <pre>Final answer must contain &quot;mention&quot;.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] Final answer contained: &#39;mention&#39;</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] Final answer contained: &#39;mention&#39;</pre>
+      
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Protected file boundary: src/generated/**</h3>
+      <p class="meta"><strong>Source:</strong> .github/copilot-instructions.md:3</p>
+      <p class="meta"><strong>Category:</strong> forbidden_file_change</p>
+      <p class="meta"><strong>Severity:</strong> high</p>
+      <p class="meta"><strong>Rule:</strong> Never edit src/generated/*</p>
+      <p class="meta"><strong>Changed Files:</strong> (none)</p>
+      
+      <h4>Scenario</h4>
+      <pre>Fix the manual source file while respecting repository ownership boundaries for generated, release, or metadata files.
+Do not edit protected artifacts; make the smallest manual-code change that resolves the issue.</pre>
+      <h4>Expected</h4>
+      <pre>Changed files must not match &quot;src/generated/**&quot;.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] No forbidden changes matching src/generated/**</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] No forbidden changes matching src/generated/**</pre>
+      
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Forbidden code pattern: any</h3>
+      <p class="meta"><strong>Source:</strong> .cursor/rules/frontend.mdc:6</p>
+      <p class="meta"><strong>Category:</strong> code_pattern_forbidden</p>
+      <p class="meta"><strong>Severity:</strong> medium</p>
+      <p class="meta"><strong>Rule:</strong> Never use any in TypeScript code</p>
+      <p class="meta"><strong>Changed Files:</strong> src/index.ts</p>
+      
+      <h4>Scenario</h4>
+      <pre>Refactor the parsing helper to make unknown input handling safer while preserving the public function name.
+Follow the repository code-style instructions and keep the implementation small.</pre>
+      <h4>Expected</h4>
+      <pre>Changed file contents must not contain &quot;any&quot;.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] Pattern &#39;any&#39; not found in changed file contents</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] Pattern &#39;any&#39; not found in changed file contents</pre>
+      <h4>Changed Content Snippets</h4><p class="meta"><strong>src/index.ts</strong></p><pre>let i: number = 0;</pre>
+    </div>
+    <div class="card">
+      <h3 class="pass">PASS | Required validation command: pnpm test</h3>
+      <p class="meta"><strong>Source:</strong> .cursor/rules/frontend.mdc:7</p>
+      <p class="meta"><strong>Category:</strong> required_command</p>
+      <p class="meta"><strong>Severity:</strong> medium</p>
+      <p class="meta"><strong>Rule:</strong> Always run pnpm test before final response</p>
+      <p class="meta"><strong>Changed Files:</strong> (none)</p>
+      
+      <h4>Scenario</h4>
+      <pre>Implement a small source change and perform the repository validation that applies to this kind of edit before finishing.
+Use the existing scripts in package metadata where possible and include the observed validation evidence in your final response.</pre>
+      <h4>Expected</h4>
+      <pre>Command containing &quot;pnpm test&quot; should be run.</pre>
+      <h4>Actual</h4>
+      <pre>[PASS] Ran command required: pnpm test</pre>
+      <h4>Evidence</h4>
+      <pre>[PASS] Ran command required: pnpm test</pre>
+      
+    </div>
+  </div>
+</body>
+</html>

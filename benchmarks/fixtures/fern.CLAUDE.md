@@ -1,0 +1,3 @@
+- Never use `require()`. We use ES modules everywhere.
+- Default exports are forbidden. Use named exports.
+- Use `import type` for all type-only imports.

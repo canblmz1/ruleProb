@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Benchmark
+        run: pnpm dev benchmark --fixtures-only
+
+      - name: Provider Matrix Smoke
+        run: pnpm dev providers
+
+      - name: Comparison Smoke
+        run: pnpm dev compare examples/basic --provider mock
+
+      - name: List Rules Smoke
+        run: pnpm dev list-rules examples/basic
+
+      - name: Mock Runtime Smoke
+        run: pnpm dev run examples/basic --provider mock --fail-below 70
+
+      - name: Dry Run Smoke
+        run: pnpm dev run examples/basic --provider dry-run --fail-below 0
+
+      - name: Doctor Smoke
+        run: pnpm dev doctor
+
+      - name: OpenCode Go Missing-Key Smoke
+        run: pnpm dev run examples/basic --provider opencode-go --fail-below 0
+        continue-on-error: true
+
+      - name: Package Dry Run
+        run: npm pack --dry-run --json
