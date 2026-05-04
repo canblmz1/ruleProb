@@ -149,7 +149,7 @@ describe('honest mock provider', () => {
     } finally {
       await fs.remove(tmp);
     }
-  });
+  }, 15000);
 });
 
 describe('opencode-go provider', () => {

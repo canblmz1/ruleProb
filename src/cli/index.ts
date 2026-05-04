@@ -24,7 +24,9 @@ import { writeMarkdownReport } from '../reporters/markdown.js';
 import { writeHtmlReport } from '../reporters/html.js';
 import { runDoctor } from './doctor.js';
 import { clearExtractionCache } from '../extractors/cache.js';
-import { EvaluationResult, Provider } from '../types/index.js';
+import { EvaluationResult, Provider, Config } from '../types/index.js';
+import { writeBadgeFiles } from '../badge/generate.js';
+import { appendHistory } from '../history/track.js';
 import fs from 'fs-extra';
 
 const program = new Command();
@@ -74,6 +76,27 @@ program
   .action(async () => {
     const removed = await clearExtractionCache();
     console.log(chalk.green(`Cleared ${removed} cached extraction file(s).`));
+  });
+
+program
+  .command('badge')
+  .description('Generate score and trend SVG badges')
+  .option('--score <number>', 'Score value to render', '0')
+  .option('--weighted-score <number>', 'Weighted score value', '0')
+  .option('--report-dir <dir>', 'Output directory', '.ruleprobe')
+  .option('--label <text>', 'Badge label', 'ruleprobe')
+  .action(async (options) => {
+    const score = parseInt(options.score, 10) || 0;
+    const weightedScore = parseInt(options.weightedScore, 10) || 0;
+    const config: Config = {
+      provider: 'mock',
+      instructionFiles: [],
+      reportDir: options.reportDir,
+      failBelow: 70,
+      keepSandbox: false
+    };
+    const { scorePath } = await writeBadgeFiles(score, weightedScore, undefined, config);
+    console.log(chalk.green(`Badge written: ${scorePath}`));
   });
 
 program
@@ -199,6 +222,7 @@ program
   .description('Run all regression tests')
   .argument('[dir]', 'Directory to test')
   .option('--provider <provider>', 'Provider to run tests with (mock, dry-run, claude-code, openrouter, gemini, opencode-go)')
+  .option('--providers <list>', 'Comma-separated list of providers to compare (e.g., mock,gemini)')
   .option('--model <model>', 'Model to use for providers that support it')
   .option('--config <path>', 'Config file path')
   .option('--extractor <type>', 'deterministic | ai-assisted | hybrid')
@@ -209,107 +233,274 @@ program
   .option('--report-dir <dir>', 'Report output directory')
   .option('--fail-below <score>', 'Fail if total score is below target')
   .option('--keep-sandbox', 'Keep sandbox on completion')
+  .option('--watch', 'Watch instruction files and re-run on changes')
+  .option('--badge', 'Generate SVG score and trend badges')
   .action(async (dir, options) => {
+    const runId = Date.now();
+
     if (dir) process.chdir(dir);
-    const config = await loadConfig(options.config);
-    if (options.provider) config.provider = options.provider;
-    if (options.model) config.model = options.model;
-    if (options.extractor) config.extractor = options.extractor;
-    if (options.debugExtractor) (config as any).debugExtractor = true;
-    if (options.executeActions === false) config.noExecuteActions = true;
-    if (options.cache === false) (config as any).useExtractionCache = false;
-    if (options.providerTimeoutMs) config.providerTimeoutMs = parseInt(options.providerTimeoutMs, 10);
-    if (options.reportDir) config.reportDir = options.reportDir;
-    if (options.failBelow) config.failBelow = parseInt(options.failBelow, 10);
-    if (options.keepSandbox) config.keepSandbox = options.keepSandbox;
+    const baseConfig = await loadConfig(options.config);
+    if (options.model) baseConfig.model = options.model;
+    if (options.extractor) baseConfig.extractor = options.extractor;
+    if (options.debugExtractor) (baseConfig as any).debugExtractor = true;
+    if (options.executeActions === false) baseConfig.noExecuteActions = true;
+    if (options.cache === false) (baseConfig as any).useExtractionCache = false;
+    if (options.providerTimeoutMs) baseConfig.providerTimeoutMs = parseInt(options.providerTimeoutMs, 10);
+    if (options.reportDir) baseConfig.reportDir = options.reportDir;
+    if (options.failBelow) baseConfig.failBelow = parseInt(options.failBelow, 10);
+    if (options.keepSandbox) baseConfig.keepSandbox = options.keepSandbox;
 
-    console.log(chalk.blue('RuleProbe Runner Started'));
-    const files = await discoverInstructions(config);
+    const providerList = options.providers
+      ? String(options.providers).split(/[,\s]+/).map((p: string) => p.trim()).filter(Boolean)
+      : options.provider
+        ? [options.provider]
+        : [baseConfig.provider];
 
-    if (files.length === 0) {
-      console.log(chalk.yellow('No testable rules found.'));
-      process.exit(0);
+    async function doRun() {
+      if (providerList.length > 1) {
+        console.log(chalk.blue(`Running multi-provider comparison: ${providerList.join(', ')}\n`));
+        const allResults: Record<string, EvaluationResult[]> = {};
+        for (const providerName of providerList) {
+          console.log(chalk.cyan(`--- Provider: ${providerName} ---`));
+          const results = await executeRun(baseConfig, providerName);
+          allResults[providerName] = results;
+          const score = Math.round(results.reduce((acc, r) => acc + r.score, 0) / (results.length || 1)) || 0;
+          console.log(chalk.cyan(`Provider ${providerName} score: ${score}/100\n`));
+        }
+        await writeComparisonReport(allResults, baseConfig, runId);
+        return;
+      }
+      await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge });
     }
 
-    console.log(`Found instruction files:\n${files.map(f => `- ${f.path}`).join('\n')}\n`);
+    await doRun();
 
-    const rules = await routeExtraction(files, config);
-    const testableRuleCount = rules.filter(r => r.testable).length;
-    console.log(`Extracted ${testableRuleCount} testable rules (${rules.length} total).`);
+    if (options.watch) {
+      console.log(chalk.blue('\nWatching for changes... (Ctrl+C to stop)'));
+      const instructionFiles = baseConfig.instructionFiles;
+      const watchers: fs.FSWatcher[] = [];
 
-    const scenarios = generateScenarios(rules);
-    console.log(`Generated ${scenarios.length} sandbox scenarios.\n`);
+      for (const pattern of instructionFiles) {
+        const resolved = path.resolve(pattern.replace(/\*\*/g, '*').replace(/\*/g, ''));
+        const parent = path.dirname(resolved);
+        if (await fs.pathExists(parent)) {
+          try {
+            const watcher = fs.watch(parent, { recursive: true }, async (_event, filename) => {
+              if (!filename) return;
+              const fullPath = path.join(parent, filename);
+              const matches = instructionFiles.some(p => {
+                const base = path.basename(fullPath).toLowerCase();
+                const pat = p.toLowerCase().replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*').replace(/\//g, '\\\\');
+                return fullPath.toLowerCase().includes(base) || new RegExp(pat).test(fullPath.toLowerCase());
+              });
+              if (!matches) return;
+              console.log(chalk.yellow(`\n[watch] File changed: ${filename}. Re-running...\n`));
+              await doRun();
+              console.log(chalk.blue('\nWatching for changes... (Ctrl+C to stop)'));
+            });
+            watchers.push(watcher);
+          } catch {
+            // ignore watch errors
+          }
+        }
+      }
 
-    console.log(`Running provider: ${config.provider}\n`);
+      if (watchers.length === 0) {
+        console.log(chalk.yellow('Could not set up file watchers. Exiting watch mode.'));
+        return;
+      }
 
-    let provider: Provider;
-    if (config.provider === 'dry-run') {
-       provider = new DryRunProvider();
-    } else if (config.provider === 'openrouter') {
-       provider = new OpenRouterProvider(config);
-    } else if (config.provider === 'gemini') {
-       const { GeminiProvider } = await import('../providers/gemini.js');
-       provider = new GeminiProvider(config);
-    } else if (config.provider === 'claude-code') {
-       const { ClaudeCodeProvider } = await import('../providers/claudeCode.js');
-       provider = new ClaudeCodeProvider(config);
-    } else if (config.provider === 'opencode-go') {
-       provider = new OpenCodeGoProvider(config);
-    } else {
-       provider = new MockProvider();
+      process.on('SIGINT', () => {
+        watchers.forEach(w => w.close());
+        process.exit(0);
+      });
+
+      await new Promise(() => {});
     }
+  });
 
-    const results: EvaluationResult[] = [];
+program.parse(process.argv);
 
-    for (const scenario of scenarios) {
-      const sandboxDir = await createSandbox(scenario);
-      const rawProviderResult = await provider.run({ scenario, sandboxDir });
-      const providerResult = normalizeProviderResult(rawProviderResult);
-      try {
-        const baseline = await getChangedFileContentsAtHead(sandboxDir, providerResult.changedFiles);
-        (providerResult as any).baselineFileContents = baseline;
-      } catch {
-        // baseline capture is best-effort
-      }
-      const evalResult = await evaluateResult(scenario, providerResult);
-      results.push(evalResult);
+async function executeRun(
+  config: Config,
+  providerName: string,
+  opts: { writeReports?: boolean; generateBadge?: boolean } = {}
+): Promise<EvaluationResult[]> {
+  console.log(chalk.blue('RuleProbe Runner Started'));
+  const files = await discoverInstructions(config);
 
-      const statusColor = evalResult.status === 'PASS' || evalResult.status === 'SKIPPED' ? chalk.green : evalResult.status === 'PARTIAL' ? chalk.yellow : chalk.red;
-      console.log(`${statusColor(evalResult.status.padEnd(7))} ${scenario.title}`);
+  if (files.length === 0) {
+    console.log(chalk.yellow('No testable rules found.'));
+    return [];
+  }
 
-      const firstAssertion = scenario.expectedAssertions[0];
-      if (firstAssertion) {
-         const expectedVal = (firstAssertion as any).value || (firstAssertion as any).manager || (firstAssertion as any).commandIncludes || (firstAssertion as any).pattern || (firstAssertion as any).text || firstAssertion.type;
-         console.log(`      Expected: ${expectedVal}`);
-      }
-      if (evalResult.assertionResults.length > 0) {
-        console.log(`      Actual: ${evalResult.assertionResults[0].evidence}`);
-      }
-      console.log('');
+  console.log(`Found instruction files:\n${files.map(f => `- ${f.path}`).join('\n')}\n`);
 
-      if (!config.keepSandbox) {
-        await cleanupSandbox(sandboxDir);
-      }
+  const rules = await routeExtraction(files, config);
+  const testableRuleCount = rules.filter(r => r.testable).length;
+  console.log(`Extracted ${testableRuleCount} testable rules (${rules.length} total).`);
+
+  const scenarios = generateScenarios(rules);
+  console.log(`Generated ${scenarios.length} sandbox scenarios.\n`);
+
+  console.log(`Running provider: ${providerName}\n`);
+
+  let provider: Provider;
+  if (providerName === 'dry-run') {
+     provider = new DryRunProvider();
+  } else if (providerName === 'openrouter') {
+     provider = new OpenRouterProvider(config);
+  } else if (providerName === 'gemini') {
+     const { GeminiProvider } = await import('../providers/gemini.js');
+     provider = new GeminiProvider(config);
+  } else if (providerName === 'claude-code') {
+     const { ClaudeCodeProvider } = await import('../providers/claudeCode.js');
+     provider = new ClaudeCodeProvider(config);
+  } else if (providerName === 'opencode-go') {
+     provider = new OpenCodeGoProvider(config);
+  } else {
+     provider = new MockProvider();
+  }
+
+  const results: EvaluationResult[] = [];
+
+  for (const scenario of scenarios) {
+    const sandboxDir = await createSandbox(scenario);
+    const rawProviderResult = await provider.run({ scenario, sandboxDir });
+    const providerResult = normalizeProviderResult(rawProviderResult);
+    try {
+      const baseline = await getChangedFileContentsAtHead(sandboxDir, providerResult.changedFiles);
+      (providerResult as any).baselineFileContents = baseline;
+    } catch {
+      // baseline capture is best-effort
     }
+    const evalResult = await evaluateResult(scenario, providerResult);
+    results.push(evalResult);
 
-    const overallScore = Math.round(results.reduce((acc, r) => acc + r.score, 0) / (results.length || 1));
-    const finalScore = isNaN(overallScore) ? 0 : overallScore;
+    const statusColor = evalResult.status === 'PASS' || evalResult.status === 'SKIPPED' ? chalk.green : evalResult.status === 'PARTIAL' ? chalk.yellow : chalk.red;
+    console.log(`${statusColor(evalResult.status.padEnd(7))} ${scenario.title}`);
 
-    console.log(`Overall score: ${finalScore}/100\n`);
+    const firstAssertion = scenario.expectedAssertions[0];
+    if (firstAssertion) {
+       const expectedVal = (firstAssertion as any).value || (firstAssertion as any).manager || (firstAssertion as any).commandIncludes || (firstAssertion as any).pattern || (firstAssertion as any).text || firstAssertion.type;
+       console.log(`      Expected: ${expectedVal}`);
+    }
+    if (evalResult.assertionResults.length > 0) {
+      console.log(`      Actual: ${evalResult.assertionResults[0].evidence}`);
+    }
+    console.log('');
 
+    if (!config.keepSandbox) {
+      await cleanupSandbox(sandboxDir);
+    }
+  }
+
+  const overallScore = Math.round(results.reduce((acc, r) => acc + r.score, 0) / (results.length || 1));
+  const finalScore = isNaN(overallScore) ? 0 : overallScore;
+
+  console.log(`Overall score: ${finalScore}/100\n`);
+
+  if (opts.writeReports) {
     await writeJsonReport(results, config);
     await writeMarkdownReport(results, config);
     await writeHtmlReport(results, config);
 
     console.log(`Reports written:\n- ${config.reportDir}/report.json\n- ${config.reportDir}/report.md\n- ${config.reportDir}/report.html\n`);
 
+    const trend = await appendHistory({
+      score: finalScore,
+      weightedScore: buildReportProofModel(results, config).weightedScore,
+      totalRules: results.length,
+      passed: results.filter(r => r.status === 'PASS').length,
+      partial: results.filter(r => r.status === 'PARTIAL').length,
+      failed: results.filter(r => r.status === 'FAIL').length,
+      skipped: results.filter(r => r.status === 'SKIPPED').length
+    }, config);
+
+    if (opts.generateBadge) {
+      const { scorePath, trendPath } = await writeBadgeFiles(finalScore, trend.history[trend.history.length - 1]?.weightedScore || finalScore, trend, config);
+      console.log(`Badges written:\n- ${scorePath}${trendPath ? `\n- ${trendPath}` : ''}\n`);
+    }
+
     if (config.failBelow !== undefined && finalScore < config.failBelow) {
       console.error(chalk.red(`Score ${finalScore} is below required threshold ${config.failBelow}`));
       process.exit(1);
     }
+  }
+
+  return results;
+}
+
+async function writeComparisonReport(
+  allResults: Record<string, EvaluationResult[]>,
+  config: Config,
+  runId: number
+) {
+  const providerNames = Object.keys(allResults);
+  const scenarioIds = [...new Set(Object.values(allResults).flat().map(r => r.scenarioId))];
+
+  const rows = scenarioIds.map(sid => {
+    const first = Object.values(allResults).flat().find(r => r.scenarioId === sid);
+    const cells: Record<string, { status: string; score: number }> = {};
+    for (const name of providerNames) {
+      const result = allResults[name].find(r => r.scenarioId === sid);
+      cells[name] = result ? { status: result.status, score: result.score } : { status: 'N/A', score: 0 };
+    }
+    return { scenarioId: sid, title: first?.scenario.title || sid, cells };
   });
 
-program.parse(process.argv);
+  const overallScores = providerNames.map(name => {
+    const results = allResults[name];
+    const score = Math.round(results.reduce((acc, r) => acc + r.score, 0) / (results.length || 1)) || 0;
+    return { name, score };
+  });
+
+  const lines = [
+    '# RuleProbe Multi-Provider Comparison',
+    '',
+    `Run ID: ${runId}`,
+    `Date: ${new Date().toISOString()}`,
+    '',
+    '## Overall Scores',
+    ...overallScores.map(o => `- **${o.name}**: ${o.score}/100`),
+    '',
+    '## Per-Scenario Results',
+    '',
+    '| Scenario | ' + providerNames.join(' | ') + ' |',
+    '| ' + ['---', ...providerNames.map(() => '---')].join(' | ') + ' |',
+    ...rows.map(row => {
+      const cells = providerNames.map(name => {
+        const c = row.cells[name];
+        const emoji = c.status === 'PASS' ? '✅' : c.status === 'FAIL' ? '❌' : c.status === 'PARTIAL' ? '⚠️' : '➖';
+        return `${emoji} ${c.status}`;
+      });
+      return `| ${row.title} | ${cells.join(' | ')} |`;
+    }),
+    '',
+    '---',
+    '*Generated by RuleProbe*'
+  ];
+
+  const outPath = path.join(config.reportDir, `comparison-${runId}.md`);
+  await fs.ensureDir(config.reportDir);
+  await fs.writeFile(outPath, lines.join('\n'), 'utf-8');
+  console.log(chalk.green(`Comparison report written: ${outPath}`));
+}
+
+// Avoid circular import: inline lightweight proof model builder for history
+function buildReportProofModel(results: EvaluationResult[], config: Config) {
+  const overallScore = Math.round(results.reduce((acc, r) => acc + r.score, 0) / (results.length || 1)) || 0;
+  const weights: Record<string, number> = { high: 3, medium: 2, low: 1 };
+  let weightedSum = 0;
+  let totalWeight = 0;
+  for (const r of results) {
+    const w = weights[r.severity] ?? weights.medium;
+    weightedSum += r.score * w;
+    totalWeight += w;
+  }
+  const weightedScore = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
+  return { finalScore: overallScore, weightedScore };
+}
 
 async function loadInstructionFilesForReadOnlyCommand(target: string | undefined, config: any): Promise<{ path: string; content: string }[]> {
   if (!target) return discoverInstructions(config);

@@ -60,11 +60,13 @@ pnpm dev run examples/basic --provider mock
 | `ruleprobe clear-cache` | Wipe AI extraction cache at `.ruleprobe/cache/` |
 | `ruleprobe init` | Write a starter `ruleprobe.config.json` |
 | `ruleprobe report` | Show latest report path |
+| `ruleprobe badge` | Generate score and trend SVG badges |
 
 ### Common flags
 
 ```
 --provider <name>           mock | dry-run | openrouter | gemini | claude-code | opencode-go
+--providers <list>          Comma-separated providers for side-by-side comparison
 --extractor <type>          deterministic | ai-assisted | hybrid
 --model <model>             Override model for the extraction provider
 --fail-below <score>        Exit 1 if score < N (default: off)
@@ -72,6 +74,8 @@ pnpm dev run examples/basic --provider mock
 --no-cache                  Disable AI extraction cache for this run
 --provider-timeout-ms <ms>  Override the default provider timeout
 --keep-sandbox              Do not delete sandbox after run
+--watch                     Watch instruction files and re-run on changes
+--badge                     Generate SVG score and trend badges after run
 ```
 
 ---
@@ -95,6 +99,18 @@ Report: .ruleprobe/report.md
 ```
 
 The severity-weighted score uses `high=3 / medium=2 / low=1`.
+
+### Interactive HTML dashboard
+
+The HTML report is now a fully interactive dashboard powered by Chart.js:
+
+- **Doughnut chart** — overall pass/partial/fail/skipped distribution
+- **Stacked bar chart** — results broken down by category
+- **Search & filter** — filter results by keyword, status, or severity
+- **Expand/collapse all** — quickly navigate large result sets
+- **Score trend line** — when history is available, shows score evolution over time
+
+Open `.ruleprobe/report.html` in your browser after any run.
 
 ---
 
@@ -157,6 +173,65 @@ ruleprobe compare . --provider gemini
 
 # Branch vs base ref (useful in CI to detect rule regressions)
 ruleprobe compare . --base origin/main --extractor hybrid
+```
+
+---
+
+## Multi-provider comparison
+
+Compare how different AI providers perform against the same rule set in a single run:
+
+```bash
+ruleprobe run . --providers mock,gemini --report-dir .ruleprobe-compare
+```
+
+This generates a side-by-side Markdown comparison report (e.g., `.ruleprobe-compare/comparison-{id}.md`) showing which scenarios each provider passes or fails.
+
+---
+
+## Watch mode
+
+Automatically re-run tests when instruction files change:
+
+```bash
+ruleprobe run . --provider gemini --watch
+```
+
+RuleProbe watches the directories containing your `instructionFiles` and triggers a full re-run on any change.
+
+---
+
+## Score history & trends
+
+RuleProbe automatically tracks scores across runs in `.ruleprobe/history.json`. The HTML report renders a trend line chart when history exists, and the CLI prints a summary of best, worst, and average scores.
+
+History entries include:
+- timestamp, score, weighted score
+- provider and extractor used
+- git branch and commit (when available)
+
+---
+
+## Badge generation
+
+Generate SVG badges for your README or CI dashboards:
+
+```bash
+# Auto-generate after a run
+ruleprobe run . --provider gemini --badge
+
+# Or generate manually
+ruleprobe badge --score 85 --weighted-score 78
+```
+
+Outputs:
+- `.ruleprobe/badge-score.svg` — current score badge
+- `.ruleprobe/badge-trend.svg` — trend direction badge (up/down/stable)
+
+Use them in your README:
+
+```markdown
+![RuleProbe Score](.ruleprobe/badge-score.svg)
 ```
 
 ---
