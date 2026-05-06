@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { execa } from 'execa';
+import { parse as shellParse } from 'shell-quote';
 import { ActionPlan, ExecutorResult, AgentAction } from '../types/index.js';
 import { getEnv } from '../config/env.js';
 
@@ -63,7 +64,8 @@ async function executeSingleAction(sandboxDir: string, action: AgentAction, resu
       }
 
     } else if (action.type === 'run_command') {
-      if (!isCommandAllowed(action.command)) {
+      const parsedCommand = parseAndValidateAllowedCommand(action.command);
+      if (!parsedCommand) {
         const blk = `BLOCKED: ${action.command}`;
         result.commands.push(blk);
         result.errors.push(`Blocked dangerous command: ${action.command}`);
@@ -74,7 +76,7 @@ async function executeSingleAction(sandboxDir: string, action: AgentAction, resu
 
       try {
         const timeout = parseInt(getEnv('RULEPROBE_ACTION_TIMEOUT_MS') || `${DEFAULT_ACTION_TIMEOUT_MS}`, 10);
-        await execa(action.command, { shell: true, cwd: sandboxDir, timeout, reject: false });
+        await execa(parsedCommand.file, parsedCommand.args, { shell: false, cwd: sandboxDir, timeout, reject: false });
         result.commands.push(action.command);
         result.evidence.push(`- Ran allowed command: ${action.command}`);
       } catch (err: any) {
@@ -106,29 +108,33 @@ function isForbiddenPath(relPath: string): boolean {
   return false;
 }
 
-// Defense-in-depth deny list. Even if the allow list later blocks an unknown
-// command, we want destructive shell maneuvers and any pipeline trick like
-// `pnpm test; rm -rf /` to be rejected up front.
-const FORBIDDEN_CMD_REGEX = /\b(rm|sudo|curl|wget|bash|sh|powershell|pwsh|cmd|chmod|chown|mkfs|dd|nc|netcat|ssh|scp|git\s+push|git\s+commit|git\s+reset|git\s+clean|git\s+rm|git\s+checkout|pnpm\s+publish|npm\s+publish|yarn\s+publish|bun\s+publish|pnpm\s+add|npm\s+install|yarn\s+add|bun\s+install)\b/;
+// Defense-in-depth deny list. Even if structured allow-listing blocks unknown
+// commands, reject obviously dangerous tool names up front.
+const FORBIDDEN_CMD_REGEX = /\b(rm|sudo|curl|wget|bash|sh|powershell|pwsh|cmd|chmod|chown|mkfs|dd|nc|netcat|ssh|scp|git|pnpm\s+publish|npm\s+publish|yarn\s+publish|bun\s+publish|pnpm\s+add|npm\s+install|yarn\s+add|bun\s+install)\b/;
 
-function isCommandAllowed(command: string): boolean {
-  // First check deny list to aggressively block pipeline tricks (e.g. `pnpm test; rm -rf /`)
-  if (FORBIDDEN_CMD_REGEX.test(command)) {
-    return false;
+function parseAndValidateAllowedCommand(command: string): { file: string; args: string[] } | null {
+  const trimmed = command.trim();
+  if (!trimmed || FORBIDDEN_CMD_REGEX.test(trimmed)) {
+    return null;
   }
-  
-  // Then strictly require allow list prefixes
-  const allowList = [
-    /^pnpm test\b/,
-    /^pnpm typecheck\b/,
-    /^pnpm build\b/,
-    /^pnpm lint\b/,
-    /^vitest\b/,
-    /^npm test\b/,
-    /^npm run test\b/,
-    /^npm run build\b/,
-    /^yarn test\b/
-  ];
 
-  return allowList.some(regex => regex.test(command.trim()));
+  const parsed = shellParse(trimmed);
+  const argv: string[] = [];
+  for (const token of parsed) {
+    if (typeof token !== 'string') return null;
+    argv.push(token);
+  }
+
+  if (argv.length === 0) return null;
+  const [file, ...args] = argv;
+
+  // Strict structured allow list
+  const isAllowed =
+    (file === 'pnpm' && ['test', 'typecheck', 'build', 'lint'].includes(args[0] || '')) ||
+    (file === 'vitest') ||
+    (file === 'npm' && ((args[0] === 'test') || (args[0] === 'run' && (args[1] === 'test' || args[1] === 'build')))) ||
+    (file === 'yarn' && args[0] === 'test');
+
+  if (!isAllowed) return null;
+  return { file, args };
 }
