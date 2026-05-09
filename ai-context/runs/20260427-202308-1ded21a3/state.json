@@ -1,0 +1,87 @@
+{
+  "run_id": "20260427-202308-1ded21a3",
+  "project_path": "C:\\dev\\ruleProb",
+  "goal": "",
+  "categories": [
+    "security"
+  ],
+  "status": "running",
+  "created_at": "2026-04-27T20:23:08.906353+00:00",
+  "updated_at": "2026-04-27T20:26:46.341792+00:00",
+  "current_step": "regression",
+  "steps": [
+    {
+      "name": "prepare",
+      "title": "Prepare project context",
+      "status": "succeeded",
+      "started_at": "2026-04-27T20:23:08.912509+00:00",
+      "finished_at": "2026-04-27T20:23:21.164586+00:00",
+      "message": "Project context is ready",
+      "log_file": "ai-context\\runs\\20260427-202308-1ded21a3\\prepare.log",
+      "exit_code": null
+    },
+    {
+      "name": "claude_plan",
+      "title": "Claude plan",
+      "status": "succeeded",
+      "started_at": "2026-04-27T20:23:21.164586+00:00",
+      "finished_at": "2026-04-27T20:23:26.045636+00:00",
+      "message": "claude_security exited with 0",
+      "log_file": "ai-context\\runs\\20260427-202308-1ded21a3\\claude_plan.log",
+      "exit_code": 0
+    },
+    {
+      "name": "codex_implement",
+      "title": "Codex #1 implement",
+      "status": "failed",
+      "started_at": "2026-04-27T20:23:26.055938+00:00",
+      "finished_at": "2026-04-27T20:23:28.400150+00:00",
+      "message": "codex_builder exited with 2",
+      "log_file": "ai-context\\runs\\20260427-202308-1ded21a3\\codex_implement.log",
+      "exit_code": 2
+    },
+    {
+      "name": "codex_test",
+      "title": "Codex #2 test",
+      "status": "failed",
+      "started_at": "2026-04-27T20:23:28.401180+00:00",
+      "finished_at": "2026-04-27T20:23:28.532447+00:00",
+      "message": "codex_builder exited with 2",
+      "log_file": "ai-context\\runs\\20260427-202308-1ded21a3\\codex_test.log",
+      "exit_code": 2
+    },
+    {
+      "name": "opencode_review",
+      "title": "OpenCode docs/debug review",
+      "status": "failed",
+      "started_at": "2026-04-27T20:26:46.339177+00:00",
+      "finished_at": "2026-04-27T20:26:46.340766+00:00",
+      "message": "OpenCode could not run automatically: 'NoneType' object has no attribute 'strip'",
+      "log_file": "ai-context\\runs\\20260427-202308-1ded21a3\\opencode_review.log",
+      "exit_code": null
+    },
+    {
+      "name": "regression",
+      "title": "Regression checks",
+      "status": "running",
+      "started_at": "2026-04-27T20:26:46.341792+00:00",
+      "finished_at": "",
+      "message": "Running configured test/build/lint commands",
+      "log_file": "",
+      "exit_code": null
+    },
+    {
+      "name": "final_review",
+      "title": "Claude final review",
+      "status": "pending",
+      "started_at": "",
+      "finished_at": "",
+      "message": "",
+      "log_file": "",
+      "exit_code": null
+    }
+  ],
+  "warnings": [
+    "OpenCode could not run automatically: 'NoneType' object has no attribute 'strip'"
+  ]
+}

@@ -112,6 +112,22 @@ export type TrendSummary = {
   streak: { type: 'up' | 'down' | 'same'; count: number };
 };
 
+export async function clearHistory(config: Config): Promise<void> {
+  const filePath = path.join(config.reportDir, HISTORY_FILE);
+  if (await fs.pathExists(filePath)) await fs.remove(filePath);
+}
+
+export function filterHistory(
+  history: HistoryEntry[],
+  opts: { provider?: string; branch?: string } = {}
+): HistoryEntry[] {
+  return history.filter(e => {
+    if (opts.provider && e.provider !== opts.provider) return false;
+    if (opts.branch && e.branch !== opts.branch) return false;
+    return true;
+  });
+}
+
 export function computeTrendSummary(history: HistoryEntry[]): TrendSummary {
   if (history.length === 0) {
     return { bestScore: 0, worstScore: 0, averageScore: 0, runs: 0, streak: { type: 'same', count: 0 } };

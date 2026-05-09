@@ -26,8 +26,9 @@ import { runDoctor } from './doctor.js';
 import { clearExtractionCache } from '../extractors/cache.js';
 import { EvaluationResult, Provider, Config } from '../types/index.js';
 import { writeBadgeFiles } from '../badge/generate.js';
-import { appendHistory } from '../history/track.js';
+import { appendHistory, loadHistory, computeTrendSummary, clearHistory, filterHistory } from '../history/track.js';
 import fs from 'fs-extra';
+import { watch as chokidarWatch } from 'chokidar';
 
 const program = new Command();
 
@@ -76,6 +77,42 @@ program
   .action(async () => {
     const removed = await clearExtractionCache();
     console.log(chalk.green(`Cleared ${removed} cached extraction file(s).`));
+  });
+
+program
+  .command('history [subcommand]')
+  .description('View or manage run history. Subcommands: clear')
+  .option('--provider <name>', 'Filter history by provider (e.g. mock, gemini)')
+  .option('--branch <name>', 'Filter history by git branch')
+  .option('--dir <dir>', 'Project directory (default: current)', '.')
+  .action(async (subcommand: string | undefined, options) => {
+    const config = await loadConfig(path.resolve(options.dir));
+    if (subcommand === 'clear') {
+      await clearHistory(config);
+      console.log(chalk.green('Run history cleared.'));
+      return;
+    }
+    const all = await loadHistory(config);
+    const filtered = filterHistory(all, { provider: options.provider, branch: options.branch });
+    if (filtered.length === 0) {
+      console.log(chalk.yellow('No history entries found' + (options.provider || options.branch ? ' matching those filters' : '') + '.'));
+      return;
+    }
+    const trend = computeTrendSummary(filtered);
+    console.log(chalk.bold(`\nRun History${options.provider ? ` [provider: ${options.provider}]` : ''}${options.branch ? ` [branch: ${options.branch}]` : ''}`));
+    console.log(`  Runs:    ${trend.runs}`);
+    console.log(`  Best:    ${trend.bestScore}/100`);
+    console.log(`  Worst:   ${trend.worstScore}/100`);
+    console.log(`  Average: ${trend.averageScore}/100`);
+    const streakEmoji = trend.streak.type === 'up' ? '↑' : trend.streak.type === 'down' ? '↓' : '→';
+    console.log(`  Streak:  ${streakEmoji} ${trend.streak.count} run(s) ${trend.streak.type}\n`);
+    const last10 = filtered.slice(-10).reverse();
+    for (const e of last10) {
+      const dir = e.score > (filtered[filtered.indexOf(e) + 1]?.score ?? e.score) ? chalk.green('↑') :
+                  e.score < (filtered[filtered.indexOf(e) + 1]?.score ?? e.score) ? chalk.red('↓') : chalk.gray('→');
+      const ts = new Date(e.timestamp).toLocaleString();
+      console.log(`  ${dir} ${e.score}/100  ${chalk.gray(ts)}  ${e.provider}/${e.extractor}  ${e.branch ?? ''}`);
+    }
   });
 
 program
@@ -232,8 +269,10 @@ program
   .option('--provider-timeout-ms <ms>', 'Override the default provider execution timeout explicitly')
   .option('--report-dir <dir>', 'Report output directory')
   .option('--fail-below <score>', 'Fail if total score is below target')
+  .option('--regression-threshold <pct>', 'Fail if score dropped more than N points vs last run')
   .option('--keep-sandbox', 'Keep sandbox on completion')
   .option('--watch', 'Watch instruction files and re-run on changes')
+  .option('--watch-delay <ms>', 'Debounce delay in ms for watch mode (default: 500)', '500')
   .option('--badge', 'Generate SVG score and trend badges')
   .action(async (dir, options) => {
     const runId = Date.now();
@@ -248,6 +287,7 @@ program
     if (options.providerTimeoutMs) baseConfig.providerTimeoutMs = parseInt(options.providerTimeoutMs, 10);
     if (options.reportDir) baseConfig.reportDir = options.reportDir;
     if (options.failBelow) baseConfig.failBelow = parseInt(options.failBelow, 10);
+    if (options.regressionThreshold) (baseConfig as any).regressionThreshold = parseInt(options.regressionThreshold, 10);
     if (options.keepSandbox) baseConfig.keepSandbox = options.keepSandbox;
 
     const providerList = options.providers
@@ -276,42 +316,36 @@ program
     await doRun();
 
     if (options.watch) {
-      console.log(chalk.blue('\nWatching for changes... (Ctrl+C to stop)'));
-      const instructionFiles = baseConfig.instructionFiles;
-      const watchers: fs.FSWatcher[] = [];
+      const watchDelay = parseInt(options.watchDelay || '500', 10);
+      console.log(chalk.blue(`\nWatching for changes... (Ctrl+C to stop)`));
 
-      for (const pattern of instructionFiles) {
-        const resolved = path.resolve(pattern.replace(/\*\*/g, '*').replace(/\*/g, ''));
-        const parent = path.dirname(resolved);
-        if (await fs.pathExists(parent)) {
-          try {
-            const watcher = fs.watch(parent, { recursive: true }, async (_event, filename) => {
-              if (!filename) return;
-              const fullPath = path.join(parent, filename);
-              const matches = instructionFiles.some(p => {
-                const base = path.basename(fullPath).toLowerCase();
-                const pat = p.toLowerCase().replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*').replace(/\//g, '\\\\');
-                return fullPath.toLowerCase().includes(base) || new RegExp(pat).test(fullPath.toLowerCase());
-              });
-              if (!matches) return;
-              console.log(chalk.yellow(`\n[watch] File changed: ${filename}. Re-running...\n`));
-              await doRun();
-              console.log(chalk.blue('\nWatching for changes... (Ctrl+C to stop)'));
-            });
-            watchers.push(watcher);
-          } catch {
-            // ignore watch errors
-          }
+      const globs = baseConfig.instructionFiles.map(p => path.resolve(p));
+      const watcher = chokidarWatch(globs, {
+        ignoreInitial: true,
+        awaitWriteFinish: { stabilityThreshold: watchDelay, pollInterval: 50 }
+      });
+
+      let running = false;
+      watcher.on('change', async (changedPath) => {
+        if (running) return;
+        running = true;
+        const rel = path.relative(process.cwd(), changedPath);
+        console.log(chalk.yellow(`\n[watch] ${rel} changed — re-running...`));
+        try {
+          await doRun();
+        } finally {
+          running = false;
+          console.log(chalk.blue('\nWatching for changes... (Ctrl+C to stop)'));
         }
-      }
+      });
 
-      if (watchers.length === 0) {
-        console.log(chalk.yellow('Could not set up file watchers. Exiting watch mode.'));
-        return;
-      }
+      watcher.on('error', (err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(chalk.red(`[watch] Watcher error: ${msg}`));
+      });
 
       process.on('SIGINT', () => {
-        watchers.forEach(w => w.close());
+        watcher.close();
         process.exit(0);
       });
 
@@ -425,6 +459,15 @@ async function executeRun(
     if (config.failBelow !== undefined && finalScore < config.failBelow) {
       console.error(chalk.red(`Score ${finalScore} is below required threshold ${config.failBelow}`));
       process.exit(1);
+    }
+
+    const regressionThreshold = (config as any).regressionThreshold;
+    if (regressionThreshold !== undefined && trend.previousScore !== null) {
+      const drop = trend.previousScore - finalScore;
+      if (drop >= regressionThreshold) {
+        console.error(chalk.red(`\n⚠️  Regression detected: score dropped ${drop} points (${trend.previousScore} → ${finalScore}), threshold is ${regressionThreshold}`));
+        process.exit(1);
+      }
     }
   }
 
