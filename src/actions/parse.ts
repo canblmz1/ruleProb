@@ -5,6 +5,7 @@ export function parseActionPlan(rawOutput: string): ActionPlan | null {
     // 1. Try to parse directly if the model was good
     const directObj = parseJsonLenient(rawOutput);
     if (isValidActionPlan(directObj)) {
+      if (typeof directObj.finalAnswer !== 'string') directObj.finalAnswer = '';
       return directObj;
     }
   } catch (e) {
@@ -18,6 +19,7 @@ export function parseActionPlan(rawOutput: string): ActionPlan | null {
     try {
       const blockObj = parseJsonLenient(match[1]);
       if (isValidActionPlan(blockObj)) {
+        if (typeof blockObj.finalAnswer !== 'string') blockObj.finalAnswer = '';
         return blockObj;
       }
     } catch (e) {
@@ -32,6 +34,7 @@ export function parseActionPlan(rawOutput: string): ActionPlan | null {
     try {
       const bracketObj = parseJsonLenient(rawOutput.substring(firstBrace, lastBrace + 1));
       if (isValidActionPlan(bracketObj)) {
+        if (typeof bracketObj.finalAnswer !== 'string') bracketObj.finalAnswer = '';
         return bracketObj;
       }
     } catch (e) {
@@ -61,10 +64,6 @@ function parseJsonLenient(str: string): any {
 function isValidActionPlan(obj: any): obj is ActionPlan {
   if (typeof obj !== 'object' || obj === null) return false;
   if (!Array.isArray(obj.actions)) return false;
-  // Make sure finalAnswer exists, though we can be lenient
-  if (typeof obj.finalAnswer !== 'string') {
-    obj.finalAnswer = "";
-  }
 
   // Basic sanity check loop for actions
   for (const act of obj.actions) {

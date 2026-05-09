@@ -665,7 +665,7 @@ function buildReportProofModel(results: EvaluationResult[], config: Config) {
   return { finalScore: overallScore, weightedScore };
 }
 
-async function loadInstructionFilesForReadOnlyCommand(target: string | undefined, config: any): Promise<{ path: string; content: string }[]> {
+async function loadInstructionFilesForReadOnlyCommand(target: string | undefined, config: Config): Promise<{ path: string; content: string }[]> {
   if (!target) return discoverInstructions(config);
 
   const resolved = path.resolve(target);
