@@ -222,9 +222,9 @@ function buildMaskedUrl(profile: ProviderProfile): string {
 
 async function dispatchExtractionRequest(profile: ProviderProfile, systemPrompt: string, fileContent: string, signal: AbortSignal): Promise<Response> {
   if (profile.kind === 'gemini') {
-    return fetch(`${profile.baseUrl}/models/${profile.model}:generateContent?key=${profile.apiKey}`, {
+    return fetch(`${profile.baseUrl}/models/${profile.model}:generateContent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': profile.apiKey },
       body: JSON.stringify({
         contents: [
           {

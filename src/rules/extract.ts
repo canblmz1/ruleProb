@@ -31,7 +31,7 @@ function processLineForRules(cleanLine: string, sourceFile: string, lineNumber: 
   const rules: Rule[] = [];
   
   // Specific complex rule splits
-  if (cleanLine.match(/NEVER run [`'"]?pnpm test[`'"]?.*Use [`'"]?vitest/i)) {
+  if (/NEVER run [`'"]?pnpm test[`'"]?/i.test(cleanLine) && /Use [`'"]?vitest/i.test(cleanLine)) {
     const forbiddenPart = cleanLine.split(/Use|Instead|but/i)[0].trim();
     // Re-prefix "Use " so KEYWORD_REGEX + extractCommandRules still triggers on the tail fragment.
     const requiredTail = cleanLine.split(/Use|Instead|but/i).slice(1).join(' ').trim();
@@ -238,9 +238,10 @@ function extractFileChangeRules(line: string, sourceFile: string, lineNumber: nu
 }
 
 function extractExplicitFilePattern(line: string): string | null {
+  if (line.length > 1000) return null;
   const backticked = Array.from(line.matchAll(/`([^`]+)`/g)).map(match => normalizeFilePattern(match[1]));
-  const directPathMatches = Array.from(line.matchAll(/([./]?[A-Za-z0-9_./*-]+\.[A-Za-z0-9_*]+|[./]?[A-Za-z0-9_./*-]+\/)/g))
-    .map(match => normalizeFilePattern(match[1]))
+  const directPathMatches = Array.from(line.matchAll(/[./]?[A-Za-z0-9_./*-]+(?:\.[A-Za-z0-9_*]+|\/)/g))
+    .map(match => normalizeFilePattern(match[0]))
     .filter(candidate => looksLikeFilePattern(candidate))
     .sort((left, right) => right.length - left.length);
 
