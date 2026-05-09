@@ -4,6 +4,16 @@ import { parseActionPlan } from '../actions/parse.js';
 import { executeActionPlan } from '../actions/execute.js';
 import type { ProviderResult, ProviderInput, ExecutorResult } from '../types/index.js';
 
+/**
+ * Replaces the API key value in any string to prevent accidental key leakage
+ * in rawOutput, error messages, and reports.
+ */
+function maskApiKey(text: string, apiKey: string): string {
+  if (!apiKey || apiKey.length < 8) return text;
+  // Use split/join to avoid RegExp special character issues in the key value
+  return text.split(apiKey).join('[REDACTED]');
+}
+
 export class GeminiProvider {
   name = 'gemini';
   config: any;
@@ -94,7 +104,7 @@ Rules:
       clearTimeout(timeoutId);
 
       const jsonText = await response.text();
-      rawOutput += `HTTP ${response.status} ${response.statusText}\n${jsonText}`;
+      rawOutput += `HTTP ${response.status} ${response.statusText}\n${maskApiKey(jsonText, apiKey)}`;
 
       if (!response.ok) {
         throw new Error(`Gemini API returned HTTP ${response.status}`);
@@ -133,7 +143,7 @@ Rules:
       success = execResult ? execResult.success : true;
     } catch (e: any) {
       clearTimeout(timeoutId);
-      rawOutput += `\\nError: ${e.message}`;
+      rawOutput += `\nError: ${maskApiKey(e.message, apiKey)}`;
     }
 
     return {
