@@ -27,7 +27,7 @@ export class OpenRouterProvider {
       };
     }
 
-    const model = this.config.model || getEnv('OPENROUTER_MODEL') || 'openrouter/free';
+    const model = this.config.model || getEnv('OPENROUTER_MODEL') || 'mistralai/mistral-7b-instruct:free';
     const timeoutMs = this.config.providerTimeoutMs || parseInt(getEnv('RULEPROBE_PROVIDER_TIMEOUT_MS') || '60000', 10);
 
     const controller = new AbortController();
