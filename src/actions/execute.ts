@@ -74,11 +74,11 @@ async function executeSingleAction(sandboxDir: string, action: AgentAction, resu
 
       try {
         const timeout = parseInt(getEnv('RULEPROBE_ACTION_TIMEOUT_MS') || `${DEFAULT_ACTION_TIMEOUT_MS}`, 10);
-        await execa(action.command, { shell: true, cwd: sandboxDir, timeout, reject: false });
+        const [cmd, ...args] = action.command.trim().split(/\s+/);
+        await execa(cmd, args, { shell: false, cwd: sandboxDir, timeout, reject: false });
         result.commands.push(action.command);
         result.evidence.push(`- Ran allowed command: ${action.command}`);
       } catch (err: any) {
-        // It failed to run, but we still log it
         result.commands.push(action.command);
         result.evidence.push(`- Ran allowed command (failed execution): ${action.command}`);
       }
@@ -106,18 +106,25 @@ function isForbiddenPath(relPath: string): boolean {
   return false;
 }
 
-// Defense-in-depth deny list. Even if the allow list later blocks an unknown
-// command, we want destructive shell maneuvers and any pipeline trick like
-// `pnpm test; rm -rf /` to be rejected up front.
+// Reject any command containing shell metacharacters before allowlist/denylist checks.
+// This prevents injection via `pnpm test; rm -rf /`, `pnpm test && curl x`, etc.
+const SHELL_OPERATOR_REGEX = /[;&|`$><(){}[\]!\\]/;
+
+// Defense-in-depth deny list for known destructive command names.
 const FORBIDDEN_CMD_REGEX = /\b(rm|sudo|curl|wget|bash|sh|powershell|pwsh|cmd|chmod|chown|mkfs|dd|nc|netcat|ssh|scp|git\s+push|git\s+commit|git\s+reset|git\s+clean|git\s+rm|git\s+checkout|pnpm\s+publish|npm\s+publish|yarn\s+publish|bun\s+publish|pnpm\s+add|npm\s+install|yarn\s+add|bun\s+install)\b/;
 
 function isCommandAllowed(command: string): boolean {
-  // First check deny list to aggressively block pipeline tricks (e.g. `pnpm test; rm -rf /`)
+  // Block shell metacharacters first — prevents operator-chained injection
+  if (SHELL_OPERATOR_REGEX.test(command)) {
+    return false;
+  }
+
+  // Deny list for destructive command names
   if (FORBIDDEN_CMD_REGEX.test(command)) {
     return false;
   }
-  
-  // Then strictly require allow list prefixes
+
+  // Strict allow list: only known safe command prefixes
   const allowList = [
     /^pnpm test\b/,
     /^pnpm typecheck\b/,
