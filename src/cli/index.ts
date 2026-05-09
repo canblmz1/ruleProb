@@ -22,6 +22,11 @@ import { evaluateResult } from '../evaluator/score.js';
 import { writeJsonReport } from '../reporters/json.js';
 import { writeMarkdownReport } from '../reporters/markdown.js';
 import { writeHtmlReport } from '../reporters/html.js';
+import { writeSarifReport } from '../reporters/sarif.js';
+import { writeJUnitReport } from '../reporters/junit.js';
+import { lintRules, formatLintOutput } from '../lint/analyze.js';
+import { analyzeTokens, formatTokenReport } from '../tokens/analyze.js';
+import { listPacks, getPack } from '../packs/registry.js';
 import { runDoctor } from './doctor.js';
 import { clearExtractionCache } from '../extractors/cache.js';
 import { EvaluationResult, Provider, Config } from '../types/index.js';
@@ -77,6 +82,113 @@ program
   .action(async () => {
     const removed = await clearExtractionCache();
     console.log(chalk.green(`Cleared ${removed} cached extraction file(s).`));
+  });
+
+program
+  .command('lint [dir]')
+  .description('Check rule quality: detect vague, duplicate, or untestable rules')
+  .option('--config <file>', 'Config file path')
+  .option('--extractor <name>', 'Extractor: deterministic (default), hybrid, ai-assisted')
+  .option('--strict', 'Exit with code 1 if any warnings are found (default: only errors)')
+  .action(async (dir: string | undefined, options) => {
+    if (dir) process.chdir(dir);
+    const config = await loadConfig(options.config);
+    if (options.extractor) config.extractor = options.extractor;
+
+    const files = await discoverInstructions(config);
+    if (files.length === 0) {
+      console.log(chalk.yellow('No instruction files found. Run `ruleprobe init` to get started.'));
+      return;
+    }
+
+    const { extractRules } = await import('../rules/extract.js');
+    const rules = extractRules(files);
+
+    const issues = lintRules(rules);
+    const output = formatLintOutput(issues, rules.length);
+
+    const hasErrors = issues.some(i => i.severity === 'error');
+    const hasWarnings = issues.some(i => i.severity === 'warn');
+
+    if (hasErrors) {
+      console.error(chalk.red(output));
+      process.exit(1);
+    } else if (hasWarnings && options.strict) {
+      console.error(chalk.yellow(output));
+      process.exit(1);
+    } else if (hasWarnings) {
+      console.log(chalk.yellow(output));
+    } else {
+      console.log(chalk.green(output));
+    }
+  });
+
+program
+  .command('analyze-tokens [dir]')
+  .description('Estimate token cost of your instruction files and identify expensive rules')
+  .option('--config <file>', 'Config file path')
+  .action(async (dir: string | undefined, options) => {
+    if (dir) process.chdir(dir);
+    const config = await loadConfig(options.config);
+    const files = await discoverInstructions(config);
+    if (files.length === 0) {
+      console.log(chalk.yellow('No instruction files found.'));
+      return;
+    }
+    const { extractRules } = await import('../rules/extract.js');
+    const rules = extractRules(files);
+    const report = analyzeTokens(files, rules);
+    const output = formatTokenReport(report);
+    const hasWarnings = report.warnings.length > 0;
+    console.log(hasWarnings ? chalk.yellow(output) : chalk.green(output));
+  });
+
+program
+  .command('packs')
+  .description('List available built-in rule packs')
+  .action(() => {
+    const packs = listPacks();
+    console.log(chalk.bold('\nAvailable rule packs:\n'));
+    for (const pack of packs) {
+      console.log(`  ${chalk.cyan(pack.name.padEnd(20))} ${pack.description}`);
+      console.log(`  ${chalk.gray('tags: ' + pack.tags.join(', '))}\n`);
+    }
+    console.log(`Run ${chalk.cyan('ruleprobe add <pack-name>')} to add rules to your CLAUDE.md`);
+  });
+
+program
+  .command('add <pack>')
+  .description('Add a built-in rule pack to your CLAUDE.md (or AGENTS.md)')
+  .option('--file <path>', 'Target instruction file', 'CLAUDE.md')
+  .option('--dry-run', 'Preview rules without writing')
+  .action(async (packName: string, options) => {
+    const pack = getPack(packName);
+    if (!pack) {
+      const available = listPacks().map(p => p.name).join(', ');
+      console.error(chalk.red(`Unknown pack: "${packName}". Available: ${available}`));
+      process.exit(1);
+    }
+
+    const preview = pack.rules.join('\n');
+    if (options.dryRun) {
+      console.log(chalk.bold(`\nPreview — ${pack.name} (${pack.rules.length} rules):\n`));
+      console.log(preview);
+      return;
+    }
+
+    const target = options.file;
+    const exists = await fs.pathExists(target);
+    const header = `\n## ${pack.name} rules (added by ruleprobe add)\n`;
+    const block = header + preview + '\n';
+
+    if (exists) {
+      await fs.appendFile(target, block, 'utf-8');
+    } else {
+      await fs.writeFile(target, block.trimStart(), 'utf-8');
+    }
+
+    console.log(chalk.green(`✓ Added ${pack.rules.length} rule(s) from "${pack.name}" to ${target}`));
+    console.log(chalk.gray(`  Run "ruleprobe list-rules ." to verify extraction.`));
   });
 
 program
@@ -438,8 +550,10 @@ async function executeRun(
     await writeJsonReport(results, config);
     await writeMarkdownReport(results, config);
     await writeHtmlReport(results, config);
+    const sarifPath = await writeSarifReport(results, config);
+    const junitPath = await writeJUnitReport(results, config);
 
-    console.log(`Reports written:\n- ${config.reportDir}/report.json\n- ${config.reportDir}/report.md\n- ${config.reportDir}/report.html\n`);
+    console.log(`Reports written:\n- ${config.reportDir}/report.json\n- ${config.reportDir}/report.md\n- ${config.reportDir}/report.html\n- ${sarifPath}\n- ${junitPath}\n`);
 
     const trend = await appendHistory({
       score: finalScore,
