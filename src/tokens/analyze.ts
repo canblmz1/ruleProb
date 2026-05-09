@@ -29,11 +29,11 @@ export interface TokenReport {
   recommendations: string[];
 }
 
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / CHARS_PER_TOKEN);
+function estimateTokens(text: string, cpt: number): number {
+  return Math.ceil(text.length / cpt);
 }
 
-export function analyzeTokens(files: DiscoveredFile[], rules: Rule[]): TokenReport {
+export function analyzeTokens(files: DiscoveredFile[], rules: Rule[], charsPerToken = CHARS_PER_TOKEN): TokenReport {
   const rulesByFile = new Map<string, Rule[]>();
   for (const rule of rules) {
     const key = rule.sourceFile;
@@ -42,13 +42,13 @@ export function analyzeTokens(files: DiscoveredFile[], rules: Rule[]): TokenRepo
   }
 
   const fileInfos: FileTokenInfo[] = files.map(f => {
-    const rawTokens = estimateTokens(f.content);
+    const rawTokens = estimateTokens(f.content, charsPerToken);
     const fileRules = rulesByFile.get(f.path) ?? [];
     const ruleInfos: RuleTokenInfo[] = fileRules.map(r => ({
       ruleId: r.id,
       ruleText: r.text,
       sourceFile: f.path,
-      estimatedTokens: estimateTokens(r.rawLine ?? r.text),
+      estimatedTokens: estimateTokens(r.rawLine ?? r.text, charsPerToken),
       category: r.category,
     }));
     return { filePath: f.path, rawTokens, ruleCount: fileRules.length, rules: ruleInfos };
@@ -80,7 +80,7 @@ export function analyzeTokens(files: DiscoveredFile[], rules: Rule[]): TokenRepo
 
   const nonTestableCount = rules.filter(r => !r.testable).length;
   if (nonTestableCount > 0) {
-    const savedTokens = rules.filter(r => !r.testable).reduce((s, r) => s + estimateTokens(r.rawLine ?? r.text), 0);
+    const savedTokens = rules.filter(r => !r.testable).reduce((s, r) => s + estimateTokens(r.rawLine ?? r.text, charsPerToken), 0);
     recommendations.push(`${nonTestableCount} non-testable rule(s) found. Removing or converting them could save ~${savedTokens} token(s).`);
   }
 

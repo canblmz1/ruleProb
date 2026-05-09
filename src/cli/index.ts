@@ -137,7 +137,11 @@ program
     }
     const { extractRules } = await import('../rules/extract.js');
     const rules = extractRules(files);
-    const report = analyzeTokens(files, rules);
+    // Use provider-specific chars-per-token ratio for more accurate estimates.
+    // Claude's tokenizer is slightly more efficient (~3.5 chars/token) vs GPT (~4).
+    const PROVIDER_CHARS_PER_TOKEN: Record<string, number> = { 'claude-code': 3.5 };
+    const charsPerToken = PROVIDER_CHARS_PER_TOKEN[config.provider] ?? 4;
+    const report = analyzeTokens(files, rules, charsPerToken);
     const output = formatTokenReport(report);
     const hasWarnings = report.warnings.length > 0;
     console.log(hasWarnings ? chalk.yellow(output) : chalk.green(output));

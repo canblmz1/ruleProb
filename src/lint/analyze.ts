@@ -19,24 +19,37 @@ export function lintRules(rules: Rule[]): LintIssue[] {
   const issues: LintIssue[] = [];
   const sigMap = new Map<string, Rule>();
 
+  // R001: aggregate non-testable rules by file (one issue per file, not one per rule)
+  const nonTestableByFile = new Map<string, Rule[]>();
   for (const rule of rules) {
+    if (!rule.testable) {
+      if (!nonTestableByFile.has(rule.sourceFile)) nonTestableByFile.set(rule.sourceFile, []);
+      nonTestableByFile.get(rule.sourceFile)!.push(rule);
+    }
+  }
+  for (const [, ntRules] of nonTestableByFile) {
+    const count = ntRules.length;
+    const first = ntRules[0];
+    const lineList = ntRules.map(r => r.lineNumber ?? 1).join(', ');
+    issues.push({
+      ruleId: first.id,
+      ruleText: count === 1 ? first.text : `${count} non-testable rules`,
+      sourceFile: first.sourceFile,
+      line: first.lineNumber ?? 1,
+      severity: 'info',
+      code: 'R001',
+      message: count === 1
+        ? `Rule is non-testable (category: ${first.category}). Consider rephrasing with ALWAYS/NEVER to make it enforceable.`
+        : `${count} non-testable rules (lines: ${lineList}). Consider rephrasing with ALWAYS/NEVER to make them enforceable.`
+    });
+  }
+
+  for (const rule of rules) {
+    if (!rule.testable) continue;
+
     const file = rule.sourceFile;
     const line = rule.lineNumber ?? 1;
     const text = rule.text;
-
-    // R001: non-testable rules (informational / commit format)
-    if (!rule.testable) {
-      issues.push({
-        ruleId: rule.id,
-        ruleText: text,
-        sourceFile: file,
-        line,
-        severity: 'info',
-        code: 'R001',
-        message: `Rule is non-testable (category: ${rule.category}). Consider rephrasing with ALWAYS/NEVER to make it enforceable.`
-      });
-      continue;
-    }
 
     // R002: vague language
     const vagueMatch = text.match(VAGUE_PHRASES);
