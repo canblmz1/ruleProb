@@ -41,14 +41,13 @@ export async function evaluateResult(scenario: Scenario, providerResult: Provide
   const passedCount = evaluable.filter(result => result.passed).length;
 
   let status: 'PASS' | 'PARTIAL' | 'FAIL' | 'SKIPPED' = 'FAIL';
-  if (evaluable.length === 0 && skippedCount > 0) {
+  if (evaluable.length === 0) {
+    // No evaluable assertions (all skipped or none present) — treat as SKIPPED, not PASS.
     status = 'SKIPPED';
-  } else if (passedCount === evaluable.length && evaluable.length > 0) {
+  } else if (passedCount === evaluable.length) {
     status = 'PASS';
   } else if (passedCount > 0) {
     status = 'PARTIAL';
-  } else if (evaluable.length === 0) {
-    status = 'PASS';
   }
 
   if (evaluable.some(result => !result.passed && ['forbidden_file_change', 'forbidden_command', 'code_pattern_forbidden'].includes(result.assertion.type))) {

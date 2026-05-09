@@ -1,9 +1,10 @@
 ﻿import { Rule, Assertion, RuleCategory } from '../types/index.js';
 
-let ruleCounter = 1;
-
 export function extractRules(files: {path: string, content: string}[]): Rule[] {
   const rules: Rule[] = [];
+  // Reset the shared createRule counter so each extractRules() call starts IDs at rule-1,
+  // giving stable, predictable IDs regardless of call order or test parallelism.
+  createRule = createRuleFactory();
 
   for (const file of files) {
     const lines = file.content.split('\n');
@@ -106,20 +107,28 @@ function extractPackageManagerRules(line: string, sourceFile: string, lineNumber
 
   if (lower.includes('pnpm') || lower.includes('npm') || lower.includes('yarn') || lower.includes('bun')) {
     if (lowerPlain.includes('always use pnpm') || lowerPlain.includes('pnpm only') || lowerPlain.includes('use pnpm')) {
-       rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'package_manager', 'high', [{ type: 'package_manager_required', manager: 'pnpm' }]));
+      // Collect forbidden managers mentioned alongside the pnpm requirement.
+      const forbiddenManagers: string[] = [];
+      if (lower.includes('never use npm') || lower.includes('never npm') || lower.includes('not npm')) forbiddenManagers.push('npm');
+      if (lower.includes('never use yarn') || lower.includes('never yarn') || lower.includes('not yarn')) forbiddenManagers.push('yarn');
+      if (lower.includes('never use bun') || lower.includes('never bun') || lower.includes('not bun')) forbiddenManagers.push('bun');
 
-      if (lower.includes('never use npm') || lower.includes('never npm') || lower.includes('not npm')) {
-        rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'package_manager', 'high', [{ type: 'package_manager_required', manager: 'pnpm', forbiddenManagers: ['npm'] }]));
+      // Emit a single rule — if forbidden managers are present, embed them directly.
+      // This prevents the same line from generating both a bare {manager:'pnpm'} rule and
+      // individual {manager:'pnpm', forbiddenManagers:[x]} rules (duplicate signatures).
+      const assertions = forbiddenManagers.length > 0
+        ? [{ type: 'package_manager_required' as const, manager: 'pnpm', forbiddenManagers }]
+        : [{ type: 'package_manager_required' as const, manager: 'pnpm' }];
+      rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'package_manager', 'high', assertions));
+    } else {
+      // Standalone "never use <manager>" fragments without an explicit pnpm requirement.
+      const forbiddenFromNegation: string[] = [];
+      if (lower.includes('never use npm') || lower.includes('never npm') || lower.includes('not npm')) forbiddenFromNegation.push('npm');
+      if (lower.includes('never use yarn') || lower.includes('never yarn') || lower.includes('not yarn')) forbiddenFromNegation.push('yarn');
+      if (lower.includes('never use bun') || lower.includes('never bun') || lower.includes('not bun')) forbiddenFromNegation.push('bun');
+      for (const fmgr of forbiddenFromNegation) {
+        rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'package_manager', 'high', [{ type: 'package_manager_required', manager: 'pnpm', forbiddenManagers: [fmgr] }]));
       }
-    }
-
-    // Standalone "never use <manager>" fragments (e.g. a sentence-split "Never use npm or yarn." that has no pnpm token).
-    const forbiddenFromNegation: string[] = [];
-    if (lower.includes('never use npm') || lower.includes('never npm') || lower.includes('not npm')) forbiddenFromNegation.push('npm');
-    if (lower.includes('never use yarn') || lower.includes('never yarn') || lower.includes('not yarn')) forbiddenFromNegation.push('yarn');
-    if (lower.includes('never use bun') || lower.includes('never bun') || lower.includes('not bun')) forbiddenFromNegation.push('bun');
-    for (const fmgr of forbiddenFromNegation) {
-      rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'package_manager', 'high', [{ type: 'package_manager_required', manager: 'pnpm', forbiddenManagers: [fmgr] }]));
     }
   }
   return rules;
@@ -273,16 +282,24 @@ function normalizeFilePattern(token: string): string {
   return normalized;
 }
 
-function createRule(sourceFile: string, lineNumber: number, rawLine: string, text: string, category: RuleCategory, severity: 'high' | 'medium' | 'low', assertions: Assertion[]): Rule {
-  return {
-    id: `rule-${ruleCounter++}`,
-    sourceFile,
-    lineNumber,
-    rawLine,
-    text,
-    category,
-    severity,
-    testable: true,
-    assertions
+function createRuleFactory() {
+  let counter = 1;
+  return function createRule(sourceFile: string, lineNumber: number, rawLine: string, text: string, category: RuleCategory, severity: 'high' | 'medium' | 'low', assertions: Assertion[]): Rule {
+    return {
+      id: `rule-${counter++}`,
+      sourceFile,
+      lineNumber,
+      rawLine,
+      text,
+      category,
+      severity,
+      testable: true,
+      assertions
+    };
   };
 }
+
+// Shared mutable reference so all helper functions (extractPackageManagerRules, etc.)
+// can call createRule without threading it through every parameter list.
+// Reset at the top of each extractRules() call so parallel tests get isolated IDs.
+let createRule: ReturnType<typeof createRuleFactory> = createRuleFactory();

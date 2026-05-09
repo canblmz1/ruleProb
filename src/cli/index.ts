@@ -541,7 +541,10 @@ async function executeRun(
     }
   }
 
-  const overallScore = Math.round(results.reduce((acc, r) => acc + r.score, 0) / (results.length || 1));
+  const scorableResults = results.filter(r => r.status !== 'SKIPPED');
+  const overallScore = scorableResults.length > 0
+    ? Math.round(scorableResults.reduce((acc, r) => acc + r.score, 0) / scorableResults.length)
+    : 0;
   const finalScore = isNaN(overallScore) ? 0 : overallScore;
 
   console.log(`Overall score: ${finalScore}/100\n`);
@@ -646,11 +649,14 @@ async function writeComparisonReport(
 
 // Avoid circular import: inline lightweight proof model builder for history
 function buildReportProofModel(results: EvaluationResult[], config: Config) {
-  const overallScore = Math.round(results.reduce((acc, r) => acc + r.score, 0) / (results.length || 1)) || 0;
+  const scorable = results.filter(r => r.status !== 'SKIPPED');
+  const overallScore = scorable.length > 0
+    ? Math.round(scorable.reduce((acc, r) => acc + r.score, 0) / scorable.length)
+    : 0;
   const weights: Record<string, number> = { high: 3, medium: 2, low: 1 };
   let weightedSum = 0;
   let totalWeight = 0;
-  for (const r of results) {
+  for (const r of scorable) {
     const w = weights[r.severity] ?? weights.medium;
     weightedSum += r.score * w;
     totalWeight += w;
