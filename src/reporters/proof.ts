@@ -59,7 +59,10 @@ export interface ReportProofModel {
 const SEVERITY_WEIGHTS: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
 export function buildReportProofModel(results: EvaluationResult[], config: Config): ReportProofModel {
-  const overallScore = Math.round(results.reduce((acc, result) => acc + result.score, 0) / (results.length || 1));
+  const scorable = results.filter(r => r.status !== 'SKIPPED');
+  const overallScore = scorable.length > 0
+    ? Math.round(scorable.reduce((acc, result) => acc + result.score, 0) / scorable.length)
+    : 0;
   const finalScore = isNaN(overallScore) ? 0 : overallScore;
 
   const scoreBreakdown = computeWeightedScore(results);
@@ -80,14 +83,17 @@ export function buildReportProofModel(results: EvaluationResult[], config: Confi
 }
 
 function computeWeightedScore(results: EvaluationResult[]): ScoreBreakdown {
+  const scorable = results.filter(r => r.status !== 'SKIPPED');
   let weightedSum = 0;
   let totalWeight = 0;
-  for (const result of results) {
+  for (const result of scorable) {
     const weight = SEVERITY_WEIGHTS[result.severity] ?? SEVERITY_WEIGHTS.medium;
     weightedSum += result.score * weight;
     totalWeight += weight;
   }
-  const unweighted = Math.round(results.reduce((acc, r) => acc + r.score, 0) / (results.length || 1)) || 0;
+  const unweighted = scorable.length > 0
+    ? Math.round(scorable.reduce((acc, r) => acc + r.score, 0) / scorable.length)
+    : 0;
   const weighted = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
   return {
     unweighted: isNaN(unweighted) ? 0 : unweighted,
