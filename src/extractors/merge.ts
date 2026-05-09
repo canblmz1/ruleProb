@@ -1,9 +1,9 @@
-import { Rule } from '../types/index.js';
+import { Rule, Config } from '../types/index.js';
 import { runDeterministicExtraction } from '../extractors/deterministic.js';
 import { runAIAssistedExtractionCached } from '../extractors/cache.js';
 import { runHybridExtraction } from '../extractors/hybrid.js';
 
-export async function routeExtraction(files: {path: string, content: string}[], config: any): Promise<Rule[]> {
+export async function routeExtraction(files: {path: string, content: string}[], config: Config): Promise<Rule[]> {
   const mode = config.extractor || 'deterministic';
 
   if (mode === 'hybrid') {

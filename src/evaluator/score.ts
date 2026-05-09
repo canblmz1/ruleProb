@@ -56,7 +56,7 @@ export async function evaluateResult(scenario: Scenario, providerResult: Provide
 
   let score = 0;
   if (status === 'PASS') score = 100;
-  else if (status === 'PARTIAL') score = 50;
+  else if (status === 'PARTIAL') score = Math.round((passedCount / evaluable.length) * 100);
 
   const actualList = assertionResults.map(result => {
     const tag = result.skipped ? 'SKIPPED' : (result.passed ? 'PASS' : 'FAIL');
