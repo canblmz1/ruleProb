@@ -88,7 +88,7 @@ test('openrouter provider uses default model and fetch is mockable', async () =>
   
   expect(result.success).toBe(true);
   expect(result.finalAnswer).toBe("Mocked response");
-  expect(fetchCalledWithModel).toBe("openrouter/free");
+  expect(fetchCalledWithModel).toBe("mistralai/mistral-7b-instruct:free");
   
   global.fetch = originalFetch;
   

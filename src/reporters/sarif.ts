@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 
 const SARIF_SCHEMA = 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Documents/CommitteeSpecifications/2.1.0/sarif-schema-2.1.0.json';
+const RULEPROBE_REPO_URL = 'https://github.com/ruleprobe/ruleprobe';
 
 function severityToLevel(severity: string, status: string): 'error' | 'warning' | 'note' | 'none' {
   if (status === 'PASS') return 'note';
@@ -17,7 +18,7 @@ export async function writeSarifReport(results: EvaluationResult[], config: Conf
     id: r.ruleId,
     name: r.scenario.title.replace(/\s+/g, '_'),
     shortDescription: { text: r.ruleText || r.scenario.title },
-    helpUri: 'https://github.com/canblmz1/ruleProb',
+    helpUri: RULEPROBE_REPO_URL,
     properties: {
       category: r.category,
       severity: r.severity,
@@ -63,7 +64,7 @@ export async function writeSarifReport(results: EvaluationResult[], config: Conf
         driver: {
           name: 'RuleProbe',
           version: '0.3.0',
-          informationUri: 'https://github.com/canblmz1/ruleProb',
+          informationUri: RULEPROBE_REPO_URL,
           rules
         }
       },

@@ -6,8 +6,7 @@ export function normalizeProviderResult(result: Partial<ProviderResult>): Provid
     finalAnswer: result.finalAnswer || "",
     changedFiles: result.changedFiles || [],
     changedFileContents: result.changedFileContents || {},
-    // Mapping both commands and commandsRun (some providers used that name erroneously)
-    commands: result.commands || (result as any).commandsRun || [],
+    commands: result.commands || [],
     rawOutput: result.rawOutput || ""
   };
 }
