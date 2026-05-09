@@ -1,6 +1,6 @@
 ﻿import { Rule, Assertion, RuleCategory } from '../types/index.js';
 
-let counter = 1;
+let ruleCounter = 1;
 
 export function extractRules(files: {path: string, content: string}[]): Rule[] {
   const rules: Rule[] = [];
@@ -275,7 +275,7 @@ function normalizeFilePattern(token: string): string {
 
 function createRule(sourceFile: string, lineNumber: number, rawLine: string, text: string, category: RuleCategory, severity: 'high' | 'medium' | 'low', assertions: Assertion[]): Rule {
   return {
-    id: `rule-${counter++}`,
+    id: `rule-${ruleCounter++}`,
     sourceFile,
     lineNumber,
     rawLine,

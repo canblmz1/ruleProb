@@ -22,7 +22,7 @@ export async function runAIAssistedExtraction(files: { path: string, content: st
   const rejectedCandidates: { candidate: CandidateRule, reason: string }[] = [];
 
   const provider = config.provider as ProviderKind | string | undefined;
-  const debug = (config as any).debugExtractor;
+  const debug = config.debugExtractor;
 
   if (!provider || !SUPPORTED_PROVIDERS.includes(provider as ProviderKind)) {
     if (debug) {
