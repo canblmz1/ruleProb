@@ -104,13 +104,15 @@ export async function appendHistory(
   return { direction, delta, previousScore, history };
 }
 
-export function computeTrendSummary(history: HistoryEntry[]): {
+export type TrendSummary = {
   bestScore: number;
   worstScore: number;
   averageScore: number;
   runs: number;
   streak: { type: 'up' | 'down' | 'same'; count: number };
-} {
+};
+
+export function computeTrendSummary(history: HistoryEntry[]): TrendSummary {
   if (history.length === 0) {
     return { bestScore: 0, worstScore: 0, averageScore: 0, runs: 0, streak: { type: 'same', count: 0 } };
   }
