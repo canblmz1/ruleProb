@@ -16,8 +16,8 @@ export async function runAIAssistedExtractionCached(
   files: { path: string; content: string }[],
   config: Config
 ): Promise<Rule[]> {
-  const useCache = (config as any).useExtractionCache !== false; // default ON
-  const debug = (config as any).debugExtractor;
+  const useCache = config.useExtractionCache !== false; // default ON
+  const debug = config.debugExtractor;
 
   if (!useCache) {
     if (debug) console.log('[extractor cache] disabled via --no-cache');

@@ -14,12 +14,11 @@ export async function runAnalyze(dir: string | undefined, options: any) {
   // end so users get extraction-only behavior even if their config says
   // hybrid.
   if (options.provider) config.provider = options.provider;
-  if (options.model) (config as any).model = options.model;
-  if (options.providerTimeoutMs) (config as any).providerTimeoutMs = parseInt(options.providerTimeoutMs, 10);
-  if (options.noCache) (config as any).useExtractionCache = false;
-  if (options.debugExtractor) (config as any).debugExtractor = true;
-  // extractor flag only matters as a hint; analyze enforces ai-assisted below.
-  if (options.extractor) (config as any).requestedExtractor = options.extractor;
+  if (options.model) config.model = options.model;
+  if (options.providerTimeoutMs) config.providerTimeoutMs = parseInt(options.providerTimeoutMs, 10);
+  if (options.noCache) config.useExtractionCache = false;
+  if (options.debugExtractor) config.debugExtractor = true;
+  // extractor flag is accepted as a hint but analyze always enforces ai-assisted below.
   config.extractor = 'ai-assisted';
 
   const files = await discoverInstructions(config);
@@ -30,11 +29,11 @@ export async function runAnalyze(dir: string | undefined, options: any) {
 
   console.log(chalk.blue('RuleProbe Analysis Started'));
   console.log(`Found ${files.length} instruction files.`);
-  console.log(`Provider: ${config.provider}  Model: ${(config as any).model || '(default)'}  Cache: ${(config as any).useExtractionCache === false ? 'disabled' : 'enabled'}`);
+  console.log(`Provider: ${config.provider}  Model: ${config.model || '(default)'}  Cache: ${config.useExtractionCache === false ? 'disabled' : 'enabled'}`);
 
   const rules = await runAIAssistedExtractionCached(files, config);
 
-  let md = `# RuleProbe Analysis\n\nProvider: ${config.provider}\nModel: ${(config as any).model || '(default)'}\nCache: ${(config as any).useExtractionCache === false ? 'disabled' : 'enabled'}\n\nInstruction files:\n${files.map(file => `- ${file.path}`).join('\n')}\n\nExtractor mode:\n- ai-assisted (analyze enforces this)\n\nRules:\n`;
+  let md = `# RuleProbe Analysis\n\nProvider: ${config.provider}\nModel: ${config.model || '(default)'}\nCache: ${config.useExtractionCache === false ? 'disabled' : 'enabled'}\n\nInstruction files:\n${files.map(file => `- ${file.path}`).join('\n')}\n\nExtractor mode:\n- ai-assisted (analyze enforces this)\n\nRules:\n`;
 
   for (let i = 0; i < rules.length; i++) {
     const rule = rules[i];

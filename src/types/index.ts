@@ -117,6 +117,12 @@ export interface Config {
   noExecuteActions?: boolean;
   providerTimeoutMs?: number;
   extractor?: string;
+  /** Fail if score dropped more than N points vs last run */
+  regressionThreshold?: number;
+  /** Print per-file extraction diagnostics */
+  debugExtractor?: boolean;
+  /** Set to false to disable AI extraction cache (default: true) */
+  useExtractionCache?: boolean;
 }
 
 export interface WriteFileAction {

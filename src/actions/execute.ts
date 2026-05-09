@@ -25,7 +25,7 @@ export async function executeActionPlan(sandboxDir: string, plan: ActionPlan): P
 async function executeSingleAction(sandboxDir: string, action: AgentAction, result: ExecutorResult) {
   try {
     if (action.type === 'write_file' || action.type === 'append_file' || action.type === 'delete_file') {
-      const safeRelativePath = getSafeRelativePath(action.path);
+      const safeRelativePath = getSafeRelativePath(action.path, sandboxDir);
       if (!safeRelativePath) {
         result.errors.push(`BLOCKED: path traversal or unsafe absolute path: ${action.path}`);
         result.evidence.push(`- Blocked risky path: ${action.path}`);
@@ -89,11 +89,19 @@ async function executeSingleAction(sandboxDir: string, action: AgentAction, resu
   }
 }
 
-function getSafeRelativePath(requestedPath: string): string | null {
+function getSafeRelativePath(requestedPath: string, sandboxDir?: string): string | null {
   if (path.isAbsolute(requestedPath)) return null;
   const normalized = path.normalize(requestedPath);
   if (normalized.startsWith('..') || normalized.startsWith('/') || normalized.startsWith('\\')) {
     return null;
+  }
+  // Defense-in-depth: if sandboxDir is provided, verify the resolved path stays inside it.
+  if (sandboxDir) {
+    const resolvedFull = path.resolve(sandboxDir, normalized);
+    const resolvedSandbox = path.resolve(sandboxDir);
+    if (!resolvedFull.startsWith(resolvedSandbox + path.sep) && resolvedFull !== resolvedSandbox) {
+      return null;
+    }
   }
   return normalized;
 }
@@ -108,7 +116,9 @@ function isForbiddenPath(relPath: string): boolean {
 
 // Reject any command containing shell metacharacters before allowlist/denylist checks.
 // This prevents injection via `pnpm test; rm -rf /`, `pnpm test && curl x`, etc.
-const SHELL_OPERATOR_REGEX = /[;&|`$><(){}[\]!\\]/;
+// Note: ^ is a metacharacter in cmd.exe (Windows). Including it as defense-in-depth
+// even though shell:false is used by execa (which already prevents shell injection).
+const SHELL_OPERATOR_REGEX = /[;&|`$><(){}[\]!\\^]/;
 
 // Defense-in-depth deny list for known destructive command names.
 const FORBIDDEN_CMD_REGEX = /\b(rm|sudo|curl|wget|bash|sh|powershell|pwsh|cmd|chmod|chown|mkfs|dd|nc|netcat|ssh|scp|git\s+push|git\s+commit|git\s+reset|git\s+clean|git\s+rm|git\s+checkout|pnpm\s+publish|npm\s+publish|yarn\s+publish|bun\s+publish|pnpm\s+add|npm\s+install|yarn\s+add|bun\s+install)\b/;

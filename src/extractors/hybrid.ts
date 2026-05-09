@@ -23,7 +23,7 @@ export async function runHybridExtraction(files: {path: string, content: string}
     return sig.toLowerCase();
   };
 
-  const debug = (config as any).debugExtractor;
+  const debug = config.debugExtractor;
   
   let preFilteredDeterministicCount = deterministicRules.length;
   const filteredDeterministic: Rule[] = [];

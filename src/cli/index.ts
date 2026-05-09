@@ -152,9 +152,9 @@ program
     const config = await loadConfig();
     if (options.extractor) config.extractor = options.extractor;
     if (options.provider) config.provider = options.provider;
-    if (options.model) (config as any).model = options.model;
-    if (options.debugExtractor) (config as any).debugExtractor = true;
-    if (options.cache === false) (config as any).useExtractionCache = false;
+    if (options.model) config.model = options.model;
+    if (options.debugExtractor) config.debugExtractor = true;
+    if (options.cache === false) config.useExtractionCache = false;
     if (options.providerTimeoutMs) config.providerTimeoutMs = parseInt(options.providerTimeoutMs, 10);
 
     const files = await loadInstructionFilesForReadOnlyCommand(dir, config);
@@ -196,8 +196,8 @@ program
     if (options.provider) config.provider = options.provider;
     if (options.model) config.model = options.model;
     if (options.extractor) config.extractor = options.extractor;
-    if (options.debugExtractor) (config as any).debugExtractor = true;
-    if (options.cache === false) (config as any).useExtractionCache = false;
+    if (options.debugExtractor) config.debugExtractor = true;
+    if (options.cache === false) config.useExtractionCache = false;
 
     const cwd = dir ? path.resolve(dir) : process.cwd();
     const files = await loadInstructionFilesForReadOnlyCommand(dir, config);
@@ -281,13 +281,13 @@ program
     const baseConfig = await loadConfig(options.config);
     if (options.model) baseConfig.model = options.model;
     if (options.extractor) baseConfig.extractor = options.extractor;
-    if (options.debugExtractor) (baseConfig as any).debugExtractor = true;
+    if (options.debugExtractor) baseConfig.debugExtractor = true;
     if (options.executeActions === false) baseConfig.noExecuteActions = true;
-    if (options.cache === false) (baseConfig as any).useExtractionCache = false;
+    if (options.cache === false) baseConfig.useExtractionCache = false;
     if (options.providerTimeoutMs) baseConfig.providerTimeoutMs = parseInt(options.providerTimeoutMs, 10);
     if (options.reportDir) baseConfig.reportDir = options.reportDir;
     if (options.failBelow) baseConfig.failBelow = parseInt(options.failBelow, 10);
-    if (options.regressionThreshold) (baseConfig as any).regressionThreshold = parseInt(options.regressionThreshold, 10);
+    if (options.regressionThreshold) baseConfig.regressionThreshold = parseInt(options.regressionThreshold, 10);
     if (options.keepSandbox) baseConfig.keepSandbox = options.keepSandbox;
 
     const providerList = options.providers
@@ -461,7 +461,7 @@ async function executeRun(
       process.exit(1);
     }
 
-    const regressionThreshold = (config as any).regressionThreshold;
+    const regressionThreshold = config.regressionThreshold;
     if (regressionThreshold !== undefined && trend.previousScore !== null) {
       const drop = trend.previousScore - finalScore;
       if (drop >= regressionThreshold) {

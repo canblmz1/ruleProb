@@ -4,6 +4,18 @@ import path from 'path';
 import { buildReportProofModel, formatSource, getChangedSnippets, resultLimitationMessages, CrossTab } from './proof.js';
 import { loadHistory, computeTrendSummary } from '../history/track.js';
 
+/**
+ * Safely serializes a value to JSON for embedding inside an HTML <script> block.
+ * JSON.stringify does not escape < > & by default, which allows </script> injection.
+ * This helper produces JSON that is safe to embed inline without XSS risk.
+ */
+function safeJsonForScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+}
+
 export async function writeHtmlReport(results: EvaluationResult[], config: Config) {
   const proof = buildReportProofModel(results, config);
   const history = await loadHistory(config);
@@ -241,7 +253,7 @@ export async function writeHtmlReport(results: EvaluationResult[], config: Confi
 
   <script>
     (function() {
-      const statusCounts = ${JSON.stringify({
+      const statusCounts = ${safeJsonForScript({
         PASS: results.filter(r => r.status === 'PASS').length,
         PARTIAL: results.filter(r => r.status === 'PARTIAL').length,
         FAIL: results.filter(r => r.status === 'FAIL').length,
@@ -266,7 +278,7 @@ export async function writeHtmlReport(results: EvaluationResult[], config: Confi
         }
       });
 
-      const categoryData = ${JSON.stringify(
+      const categoryData = ${safeJsonForScript(
         [...new Set(results.map(r => r.category || 'unknown'))].sort().map(c => ({
           category: c,
           pass: results.filter(r => (r.category || 'unknown') === c && r.status === 'PASS').length,
@@ -378,10 +390,10 @@ function renderTrendChartScript(history: import('../history/track.js').HistoryEn
       new Chart(document.getElementById('trendChart'), {
         type: 'line',
         data: {
-          labels: ${JSON.stringify(labels)},
+          labels: ${safeJsonForScript(labels)},
           datasets: [
-            { label: 'Score', data: ${JSON.stringify(scores)}, borderColor: '#4c8bf5', backgroundColor: 'rgba(76,139,245,0.1)', fill: true, tension: 0.3 },
-            { label: 'Weighted', data: ${JSON.stringify(weighted)}, borderColor: '#b54708', backgroundColor: 'rgba(181,71,8,0.1)', fill: true, tension: 0.3 }
+            { label: 'Score', data: ${safeJsonForScript(scores)}, borderColor: '#4c8bf5', backgroundColor: 'rgba(76,139,245,0.1)', fill: true, tension: 0.3 },
+            { label: 'Weighted', data: ${safeJsonForScript(weighted)}, borderColor: '#b54708', backgroundColor: 'rgba(181,71,8,0.1)', fill: true, tension: 0.3 }
           ]
         },
         options: {
