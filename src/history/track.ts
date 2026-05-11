@@ -33,8 +33,10 @@ export async function loadHistory(config: Config): Promise<HistoryEntry[]> {
     try {
       const data = await fs.readJson(filePath);
       if (Array.isArray(data)) return data;
+      // File exists but is not an array — treat as corrupt.
+      console.warn(`[ruleprobe] Warning: history file at ${filePath} is malformed (not an array). Starting fresh.`);
     } catch {
-      // ignore corrupt history
+      console.warn(`[ruleprobe] Warning: could not parse history file at ${filePath}. Starting fresh.`);
     }
   }
   return [];

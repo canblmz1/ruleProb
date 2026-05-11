@@ -39,8 +39,8 @@ GEMINI_API_KEY=... ruleprobe run . --provider gemini --extractor hybrid --fail-b
 From source:
 
 ```bash
-git clone https://github.com/canbilmez/ruleprobe
-cd ruleprobe
+git clone https://github.com/canblmz1/ruleProb
+cd ruleProb
 pnpm install && pnpm build
 pnpm dev run examples/basic --provider mock
 ```
@@ -280,7 +280,29 @@ RuleProbe creates disposable sandboxes and blocks:
 - Destructive shell commands (`rm`, `git reset`, `git push`, package publishes)
 - Long-running commands via action timeouts
 
+**API key and data privacy:** When using real providers (gemini, openrouter, opencode-go), your instruction file contents are sent to the provider API for extraction and/or scenario evaluation. Do not include secrets, personal data, or proprietary information in your instruction files when using third-party providers.
+
+**Recommended: add `.ruleprobe/` to your `.gitignore`** to avoid committing reports, cache, badges, and history files that may contain sensitive rule details:
+
+```
+echo '.ruleprobe/' >> .gitignore
+```
+
 Use real providers only with repositories and credentials you are comfortable testing.
+
+---
+
+## Troubleshooting
+
+**API key not found:** Ensure you copied `.env.example` to `.env` and filled in the required keys. Run `ruleprobe doctor` to verify key presence.
+
+**Provider returns no rules:** Try `--extractor deterministic` first to verify extraction works, then add `--debug-extractor` for verbose output.
+
+**Typecheck fails after install:** Ensure you are using `pnpm` (not `npm` or `yarn`). Run `pnpm install --frozen-lockfile`.
+
+**Windows path issues:** RuleProbe normalizes paths internally. If you see path separator issues in sandbox output, report them with the full error message and your OS/Node version.
+
+**Score below threshold / exit code 1:** Use `--fail-below 0` to disable the threshold check while debugging.
 
 ---
 

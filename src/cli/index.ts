@@ -80,8 +80,8 @@ program
   .command('clear-cache')
   .description('Remove cached AI extraction results from .ruleprobe/cache/')
   .action(async () => {
-    const removed = await clearExtractionCache();
-    console.log(chalk.green(`Cleared ${removed} cached extraction file(s).`));
+    const { removed, cacheDir } = await clearExtractionCache();
+    console.log(chalk.green(`Cleared ${removed} cached extraction file(s) from ${cacheDir}`));
   });
 
 program
@@ -508,8 +508,12 @@ async function executeRun(
      provider = new ClaudeCodeProvider(config);
   } else if (providerName === 'opencode-go') {
      provider = new OpenCodeGoProvider(config);
-  } else {
+  } else if (providerName === 'mock') {
      provider = new MockProvider();
+  } else {
+     const KNOWN_PROVIDERS = ['mock', 'dry-run', 'gemini', 'openrouter', 'claude-code', 'opencode-go'];
+     console.error(chalk.red(`Unknown provider: "${providerName}". Valid providers: ${KNOWN_PROVIDERS.join(', ')}`));
+     process.exit(1);
   }
 
   const results: EvaluationResult[] = [];

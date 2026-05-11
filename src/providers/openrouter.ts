@@ -4,6 +4,15 @@ import { executeActionPlan } from '../actions/execute.js';
 import { getChangedFileContents, getChangedFiles } from '../sandbox/create.js';
 import { getEnv } from '../config/env.js';
 
+/**
+ * Replaces the API key value in any string to prevent accidental key leakage
+ * in rawOutput, error messages, and reports.
+ */
+function maskApiKey(text: string, apiKey: string): string {
+  if (!apiKey || apiKey.length < 8) return text;
+  return text.split(apiKey).join('[REDACTED]');
+}
+
 export class OpenRouterProvider {
   name = 'openrouter';
   config: Config;
@@ -76,7 +85,7 @@ Rules:
       clearTimeout(timeoutId);
 
       const jsonText = await response.text();
-      let rawOutput = `HTTP ${response.status} ${response.statusText}\n${jsonText}`;
+      let rawOutput = `HTTP ${response.status} ${response.statusText}\n${maskApiKey(jsonText, apiKey)}`;
 
       let finalAnswer = '';
       if (response.ok) {
@@ -129,7 +138,7 @@ Rules:
         changedFiles: [],
         changedFileContents: {},
         commands: [],
-        rawOutput: e?.message || 'Unknown fetching error',
+        rawOutput: maskApiKey(e?.message || 'Unknown fetching error', apiKey),
         success: false
       };
     }

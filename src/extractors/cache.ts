@@ -77,9 +77,9 @@ export async function runAIAssistedExtractionCached(
   return merged;
 }
 
-export async function clearExtractionCache(): Promise<number> {
+export async function clearExtractionCache(): Promise<{ removed: number; cacheDir: string }> {
   const cacheDir = path.resolve('.ruleprobe', 'cache');
-  if (!await fs.pathExists(cacheDir)) return 0;
+  if (!await fs.pathExists(cacheDir)) return { removed: 0, cacheDir };
   const entries = await fs.readdir(cacheDir);
   let removed = 0;
   for (const entry of entries) {
@@ -91,7 +91,7 @@ export async function clearExtractionCache(): Promise<number> {
       // skip
     }
   }
-  return removed;
+  return { removed, cacheDir };
 }
 
 function sanitizeForFilename(value: string): string {

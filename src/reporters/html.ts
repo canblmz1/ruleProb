@@ -165,7 +165,7 @@ export async function writeHtmlReport(results: EvaluationResult[], config: Confi
   <div class="container">
     <header>
       <h1>RuleProbe Report</h1>
-      <p>Generated on ${new Date().toLocaleString()} &middot; Provider: ${config.provider} &middot; Extractor: ${config.extractor || 'deterministic'}</p>
+      <p>Generated on ${new Date().toLocaleString()} &middot; Provider: ${escapeHtml(config.provider)} &middot; Extractor: ${escapeHtml(config.extractor || 'deterministic')}</p>
     </header>
 
     <div class="grid">
@@ -376,7 +376,7 @@ function renderTrendSection(history: import('../history/track.js').HistoryEntry[
           <div><strong style="color:var(--color-pass)">${trend.bestScore}</strong> best</div>
           <div><strong style="color:var(--color-fail)">${trend.worstScore}</strong> worst</div>
           <div><strong>${trend.averageScore}</strong> avg</div>
-          <div>${trend.streak.count} ${trend.streak.type} streak</div>
+          <div>${trend.streak.count} ${escapeHtml(trend.streak.type)} streak</div>
         </div>
       </div>
     </div>`;

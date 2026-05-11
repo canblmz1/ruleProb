@@ -9,10 +9,11 @@ export interface BadgeConfig {
 }
 
 export function generateScoreBadge(score: number, weightedScore: number, options: BadgeConfig = {}): string {
+  const safeScore = Math.min(100, Math.max(0, Math.round(isFinite(score) ? score : 0)));
   const label = options.label || 'ruleprobe';
   const style = options.style || 'flat';
-  const color = options.color || scoreColor(score);
-  const message = `${score}%20/%20100`;
+  const color = options.color || scoreColor(safeScore);
+  const message = `${safeScore}%20/%20100`;
 
   if (style === 'flat-square') {
     return generateFlatSquareBadge(label, message, color);
