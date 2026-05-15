@@ -1,8 +1,10 @@
 import { EvaluationResult, Config } from '../types/index.js';
 import fs from 'fs-extra';
 import path from 'path';
+import { createRequire } from 'module';
 import { buildReportProofModel, formatSource, getChangedSnippets, resultLimitationMessages, CrossTab } from './proof.js';
 import { loadHistory, computeTrendSummary } from '../history/track.js';
+import { BaselineDelta } from '../baseline/compare.js';
 
 /**
  * Safely serializes a value to JSON for embedding inside an HTML <script> block.
@@ -16,10 +18,35 @@ function safeJsonForScript(value: unknown): string {
     .replace(/&/g, '\\u0026');
 }
 
-export async function writeHtmlReport(results: EvaluationResult[], config: Config) {
+/**
+ * Returns an inline <script> tag with bundled Chart.js source for airgapped environments.
+ * Falls back to a CDN <script> tag if the package cannot be resolved at runtime.
+ * Inline source has </script> sequences escaped to prevent HTML parser early close.
+ */
+async function getChartJsScript(): Promise<string> {
+  const CDN_FALLBACK = `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>`;
+  try {
+    // Use createRequire to locate the package, then read the file directly.
+    // chart.js package.json "exports" does not expose the dist/ path via subpath
+    // exports, so we resolve the package root and build the path manually.
+    const req = createRequire(import.meta.url);
+    const pkgRoot = path.dirname(req.resolve('chart.js/package.json'));
+    const umdPath = path.join(pkgRoot, 'dist', 'chart.umd.min.js');
+    const source = await fs.readFile(umdPath, 'utf-8');
+    // Escape any </script> sequences inside the bundled source to prevent
+    // the HTML parser from treating them as a script end tag.
+    const safeSource = source.replace(/<\/script>/gi, '<\\/script>');
+    return `<script>${safeSource}</script>`;
+  } catch {
+    return CDN_FALLBACK;
+  }
+}
+
+export async function writeHtmlReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta) {
   const proof = buildReportProofModel(results, config);
   const history = await loadHistory(config);
   const trend = computeTrendSummary(history);
+  const chartScript = await getChartJsScript();
 
   let html = `<!DOCTYPE html>
 <html lang="en">
@@ -27,7 +54,7 @@ export async function writeHtmlReport(results: EvaluationResult[], config: Confi
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RuleProbe Report</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  ${chartScript}
   <style>
     :root {
       --color-pass: #167c2b;
@@ -203,6 +230,8 @@ export async function writeHtmlReport(results: EvaluationResult[], config: Confi
       <h2>Share Block</h2>
       <div class="share-block">${escapeHtml(proof.shareBlock.text)}</div>
     </div>
+
+    ${delta ? renderBaselineHtml(delta) : ''}
 
     <div class="card" style="margin-bottom:2rem;">
       <h2>Known Limitations</h2>
@@ -423,6 +452,7 @@ function renderResultCard(result: EvaluationResult, idx: number): string {
         <p class="meta"><strong>Source:</strong> ${escapeHtml(formatSource(result.sourceFile, result.sourceLine))}</p>
         <p class="meta"><strong>Rule:</strong> ${escapeHtml(result.ruleText || result.scenario.title)}</p>
         <p class="meta"><strong>Changed Files:</strong> ${escapeHtml(result.providerResult.changedFiles.join(', ') || '(none)')}</p>
+        ${result.skipReason ? `<p class="meta" style="color:var(--color-skipped)"><strong>Skip Reason:</strong> ${escapeHtml(result.skipReason)}</p>` : ''}
         ${limitations.length > 0 ? `<p class="meta" style="color:var(--color-partial)"><strong>Limitations:</strong> ${limitations.map(escapeHtml).join('; ')}</p>` : ''}
         <h4>Scenario</h4>
         <pre>${escapeHtml(result.scenario.prompt)}</pre>
@@ -456,6 +486,32 @@ function renderCrossTabHtml(crossTab: CrossTab): string {
   }).join('');
   html += `<tr><td><strong>TOTAL</strong></td>${totalCells}</tr></tbody>`;
   return html;
+}
+
+function renderBaselineHtml(delta: BaselineDelta): string {
+  const items: string[] = [];
+  if (delta.newPasses.length > 0) {
+    items.push(`<li><strong style="color:var(--color-pass)">New passes:</strong> ${delta.newPasses.length}</li>`);
+  }
+  if (delta.improvements.length > 0) {
+    items.push(`<li><strong style="color:var(--color-pass)">Improvements:</strong> ${delta.improvements.length}</li>`);
+  }
+  items.push(`<li><strong>Unchanged:</strong> ${delta.unchanged.length}</li>`);
+  if (delta.regressions.length > 0) {
+    items.push(`<li><strong style="color:var(--color-fail)">Regressions:</strong> ${delta.regressions.length}</li>`);
+  }
+
+  let regressionsHtml = '';
+  if (delta.regressions.length > 0) {
+    regressionsHtml = `<ul style="margin-top:0.5rem;color:var(--color-fail);">${delta.regressions.map(r => `<li>[${r.status}] ${escapeHtml(r.scenario.title)}</li>`).join('')}</ul>`;
+  }
+
+  return `
+    <div class="card" style="margin-bottom:2rem;">
+      <h2>Baseline Comparison</h2>
+      <ul>${items.join('')}</ul>
+      ${regressionsHtml}
+    </div>`;
 }
 
 function escapeHtml(value: string): string {

@@ -2,8 +2,9 @@ import { EvaluationResult, Config } from '../types/index.js';
 import fs from 'fs-extra';
 import path from 'path';
 import { buildReportProofModel, formatChangedFiles, formatSource, getChangedSnippets, resultLimitationMessages, CrossTab } from './proof.js';
+import { BaselineDelta } from '../baseline/compare.js';
 
-export async function writeMarkdownReport(results: EvaluationResult[], config: Config) {
+export async function writeMarkdownReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta) {
   const proof = buildReportProofModel(results, config);
 
   const lines = [
@@ -16,7 +17,40 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
     `- PARTIAL: ${results.filter(result => result.status === 'PARTIAL').length}`,
     `- FAIL: ${results.filter(result => result.status === 'FAIL').length}`,
     `- SKIPPED: ${results.filter(result => result.status === 'SKIPPED').length}`,
-    '',
+    ''
+  ];
+
+  if (delta) {
+    lines.push('## Baseline Comparison');
+    lines.push(`- New passes: ${delta.newPasses.length}`);
+    lines.push(`- Improvements: ${delta.improvements.length}`);
+    lines.push(`- Unchanged: ${delta.unchanged.length}`);
+    lines.push(`- Regressions: ${delta.regressions.length}`);
+    if (delta.regressions.length > 0) {
+      lines.push('');
+      lines.push('### Regressions');
+      for (const r of delta.regressions) {
+        lines.push(`- [${r.status}] ${r.scenario.title}`);
+      }
+    }
+    if (delta.newPasses.length > 0) {
+      lines.push('');
+      lines.push('### New Passes');
+      for (const r of delta.newPasses) {
+        lines.push(`- [${r.status}] ${r.scenario.title}`);
+      }
+    }
+    if (delta.improvements.length > 0) {
+      lines.push('');
+      lines.push('### Improvements');
+      for (const r of delta.improvements) {
+        lines.push(`- [${r.status}] ${r.scenario.title}`);
+      }
+    }
+    lines.push('');
+  }
+
+  lines.push(
     `Severity weights: high=${proof.scoreBreakdown.weights.high}, medium=${proof.scoreBreakdown.weights.medium}, low=${proof.scoreBreakdown.weights.low}`,
     '',
     '## Proof-Friendly Share Block',
@@ -34,7 +68,7 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
     '',
     '## Results',
     ''
-  ];
+  );
 
   for (const result of results) {
     lines.push(`### ${result.status} ${result.scenario.title}`);
@@ -43,6 +77,9 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
     lines.push(`- Severity: ${result.severity}`);
     lines.push(`- Rule: ${result.ruleText || result.scenario.title}`);
     lines.push(`- Changed Files: ${formatChangedFiles(result.providerResult.changedFiles)}`);
+    if (result.skipReason) {
+      lines.push(`- Skip Reason: ${result.skipReason}`);
+    }
     const resultLimitations = resultLimitationMessages(result);
     if (resultLimitations.length > 0) {
       lines.push(`- Result Limitations: ${resultLimitations.join(' ')}`);

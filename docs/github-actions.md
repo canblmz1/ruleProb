@@ -31,6 +31,13 @@ jobs:
         continue-on-error: true
       - name: RuleProbe compliance
         run: pnpm dev run . --provider mock --extractor deterministic --fail-below 70
+      - name: RuleProbe baseline check
+        run: pnpm dev run . --provider mock --extractor deterministic --baseline --fail-on-regression
+      - name: Post RuleProbe PR comment
+        if: github.event_name == 'pull_request'
+        run: gh pr comment ${{ github.event.pull_request.number }} --body-file .ruleprobe/report.pr-comment.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload RuleProbe reports
         uses: actions/upload-artifact@v4
         if: always()

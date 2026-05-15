@@ -17,13 +17,14 @@ import { MockProvider } from '../providers/mock.js';
 import { DryRunProvider } from '../providers/dryRun.js';
 import { OpenRouterProvider } from '../providers/openrouter.js';
 import { OpenCodeGoProvider } from '../providers/opencodeGo.js';
-import { renderProviderCapabilityMarkdown } from '../providers/capabilities.js';
+import { renderProviderCapabilityMarkdown, providerCapabilities } from '../providers/capabilities.js';
 import { evaluateResult } from '../evaluator/score.js';
 import { writeJsonReport } from '../reporters/json.js';
 import { writeMarkdownReport } from '../reporters/markdown.js';
 import { writeHtmlReport } from '../reporters/html.js';
 import { writeSarifReport } from '../reporters/sarif.js';
 import { writeJUnitReport } from '../reporters/junit.js';
+import { writePrCommentReport } from '../reporters/prComment.js';
 import { lintRules, formatLintOutput } from '../lint/analyze.js';
 import { analyzeTokens, formatTokenReport } from '../tokens/analyze.js';
 import { listPacks, getPack } from '../packs/registry.js';
@@ -32,6 +33,7 @@ import { clearExtractionCache } from '../extractors/cache.js';
 import { EvaluationResult, Provider, Config } from '../types/index.js';
 import { writeBadgeFiles } from '../badge/generate.js';
 import { appendHistory, loadHistory, computeTrendSummary, clearHistory, filterHistory } from '../history/track.js';
+import { readBaseline, writeBaseline, computeBaselineDelta, formatBaselineDelta, BaselineDelta } from '../baseline/compare.js';
 import fs from 'fs-extra';
 import { watch as chokidarWatch } from 'chokidar';
 
@@ -71,8 +73,12 @@ program
 program
   .command('doctor')
   .description('Run local diagnostics for RuleProbe (Node, pnpm, dist, shebang, env keys, .ruleprobe writeability)')
-  .action(async () => {
-    const result = await runDoctor({ cwd: process.cwd() });
+  .option('--json', 'Output diagnostics as JSON for CI integration')
+  .action(async (options) => {
+    const result = await runDoctor({ cwd: process.cwd(), json: !!options.json });
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+    }
     if (result.criticalFailures > 0) process.exit(1);
   });
 
@@ -335,8 +341,13 @@ program
 program
   .command('providers')
   .description('Show provider capability matrix')
-  .action(() => {
-    console.log(renderProviderCapabilityMarkdown());
+  .option('--json', 'Output provider matrix as JSON')
+  .action((options) => {
+    if (options.json) {
+      console.log(JSON.stringify(providerCapabilities, null, 2));
+    } else {
+      console.log(renderProviderCapabilityMarkdown());
+    }
   });
 
 program
@@ -390,6 +401,8 @@ program
   .option('--watch', 'Watch instruction files and re-run on changes')
   .option('--watch-delay <ms>', 'Debounce delay in ms for watch mode (default: 500)', '500')
   .option('--badge', 'Generate SVG score and trend badges')
+  .option('--baseline', 'Save or compare against a baseline run')
+  .option('--fail-on-regression', 'Exit with code 1 if any scenario regressed vs baseline')
   .action(async (dir, options) => {
     const runId = Date.now();
 
@@ -405,6 +418,8 @@ program
     if (options.failBelow) baseConfig.failBelow = parseInt(options.failBelow, 10);
     if (options.regressionThreshold) baseConfig.regressionThreshold = parseInt(options.regressionThreshold, 10);
     if (options.keepSandbox) baseConfig.keepSandbox = options.keepSandbox;
+    if (options.baseline) baseConfig.baseline = true;
+    if (options.failOnRegression) baseConfig.failOnRegression = true;
 
     const providerList = options.providers
       ? String(options.providers).split(/[,\s]+/).map((p: string) => p.trim()).filter(Boolean)
@@ -558,13 +573,28 @@ async function executeRun(
   console.log(`Overall score: ${finalScore}/100\n`);
 
   if (opts.writeReports) {
-    await writeJsonReport(results, config);
-    await writeMarkdownReport(results, config);
-    await writeHtmlReport(results, config);
+    let delta: BaselineDelta | undefined;
+    if (config.baseline) {
+      const baseline = await readBaseline(config);
+      delta = computeBaselineDelta(results, baseline);
+      console.log(chalk.bold('\nBaseline Comparison'));
+      console.log(formatBaselineDelta(delta));
+      if (config.failOnRegression && delta.regressions.length > 0) {
+        console.error(chalk.red(`\n${delta.regressions.length} regression(s) detected vs baseline.`));
+        process.exit(1);
+      }
+      await writeBaseline(results, config);
+      console.log(chalk.green(`\nBaseline updated: ${config.reportDir}/baseline.json`));
+    }
+
+    await writeJsonReport(results, config, delta);
+    await writeMarkdownReport(results, config, delta);
+    await writeHtmlReport(results, config, delta);
     const sarifPath = await writeSarifReport(results, config);
     const junitPath = await writeJUnitReport(results, config);
+    const prCommentPath = await writePrCommentReport(results, config, delta);
 
-    console.log(`Reports written:\n- ${config.reportDir}/report.json\n- ${config.reportDir}/report.md\n- ${config.reportDir}/report.html\n- ${sarifPath}\n- ${junitPath}\n`);
+    console.log(`Reports written:\n- ${config.reportDir}/report.json\n- ${config.reportDir}/report.md\n- ${config.reportDir}/report.html\n- ${sarifPath}\n- ${junitPath}\n- ${prCommentPath}\n`);
 
     const trend = await appendHistory({
       score: finalScore,

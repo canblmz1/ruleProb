@@ -116,7 +116,7 @@ Rules:
       clearTimeout(timeoutId);
       responseReceived = true;
 
-      const jsonText = sanitizeProviderText(await response.text());
+      const jsonText = sanitizeProviderText(await response.text(), apiKey ?? undefined);
       let rawOutput = `HTTP ${response.status} ${response.statusText}\n${jsonText}`;
       let finalAnswer = '';
 
@@ -179,15 +179,38 @@ Rules:
         changedFiles: [],
         changedFileContents: {},
         commands: [],
-        rawOutput: `OpenCode Go fetch failed: ${e?.message || 'Unknown error'}`,
+        rawOutput: sanitizeProviderText(`OpenCode Go fetch failed: ${e?.message || 'Unknown error'}`, apiKey ?? undefined),
         success: false
       };
     }
   }
 }
 
-function sanitizeProviderText(text: string): string {
-  return text
-    .replace(/sk-[A-Za-z0-9_-]{12,}/g, '[REDACTED_KEY]')
-    .replace(/(OPENCODE_GO_API_KEY|OPENCODE_API_KEY)\s*=?\s*['"]?[A-Za-z0-9_-]+['"]?/g, '$1=[REDACTED]');
+export function sanitizeProviderText(text: string, apiKey?: string): string {
+  let result = text;
+
+  // 1. Bilinen key değerini split/join ile redact et (regex özel char güvenliği için)
+  if (apiKey && apiKey.length >= 8) {
+    result = result.split(apiKey).join('[REDACTED_KEY]');
+  }
+
+  // 2. sk- prefix pattern (OpenAI-compat key formatları: sk-, sk-or-v1-, sk-ant-)
+  result = result.replace(/sk-(?:or-v1-|ant-)?[A-Za-z0-9_-]{12,}/g, '[REDACTED_KEY]');
+
+  // 3. Bearer token pattern — response body echo / Authorization header dump'ları
+  result = result.replace(/\bBearer\s+[A-Za-z0-9_\-.]{16,}/gi, 'Bearer [REDACTED]');
+
+  // 4. JSON field pattern — "api_key": "...", "token": "...", "secret": "...", "key": "..."
+  result = result.replace(
+    /"(?:api_key|access_token|token|secret|key)"\s*:\s*"([A-Za-z0-9_\-.]{8,})"/gi,
+    (match, val) => match.replace(val, '[REDACTED]')
+  );
+
+  // 5. Env var assignment pattern — yaygın API key env var'ları
+  result = result.replace(
+    /((?:OPENCODE|OPENROUTER|GEMINI|ANTHROPIC|OPENAI)(?:_GO)?_(?:API_)?KEY)\s*[=:]\s*['"']?[A-Za-z0-9_\-.]{8,}['"']?/gi,
+    '$1=[REDACTED]'
+  );
+
+  return result;
 }

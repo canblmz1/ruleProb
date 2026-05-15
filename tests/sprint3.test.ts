@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { parseFrontmatter, fileMatchesGlobs } from '../src/instructions/frontmatter.js';
 import { analyzeTokens } from '../src/tokens/analyze.js';
 import { getPack, listPacks } from '../src/packs/registry.js';
+import { runDoctor } from '../src/cli/doctor.js';
+import { providerCapabilities } from '../src/providers/capabilities.js';
 import type { Rule } from '../src/types/index.js';
 
 // ─── Frontmatter parser ──────────────────────────────────────────────────────
@@ -169,5 +171,86 @@ describe('pack registry', () => {
         expect(rule.trimStart()).toMatch(/^-/);
       }
     }
+  });
+});
+
+// ─── doctor --json ────────────────────────────────────────────────────────────
+
+describe('runDoctor --json mode', () => {
+  it('returns structured result with checks array', async () => {
+    const result = await runDoctor({ cwd: process.cwd(), json: true });
+    expect(Array.isArray(result.checks)).toBe(true);
+    expect(result.checks.length).toBeGreaterThan(0);
+  });
+
+  it('every check has name, status, detail fields', async () => {
+    const result = await runDoctor({ cwd: process.cwd(), json: true });
+    for (const check of result.checks) {
+      expect(typeof check.name).toBe('string');
+      expect(['PASS', 'WARN', 'FAIL']).toContain(check.status);
+      expect(typeof check.detail).toBe('string');
+    }
+  });
+
+  it('criticalFailures is a non-negative integer', async () => {
+    const result = await runDoctor({ cwd: process.cwd(), json: true });
+    expect(typeof result.criticalFailures).toBe('number');
+    expect(result.criticalFailures).toBeGreaterThanOrEqual(0);
+  });
+
+  it('summary is a non-empty string', async () => {
+    const result = await runDoctor({ cwd: process.cwd(), json: true });
+    expect(typeof result.summary).toBe('string');
+    expect(result.summary.length).toBeGreaterThan(0);
+  });
+
+  it('summary says "no critical issues" when criticalFailures is 0', async () => {
+    const result = await runDoctor({ cwd: process.cwd(), json: true });
+    if (result.criticalFailures === 0) {
+      expect(result.summary).toBe('no critical issues');
+    } else {
+      expect(result.summary).toContain('critical issue');
+    }
+  });
+
+  it('result is JSON-serializable without throwing', async () => {
+    const result = await runDoctor({ cwd: process.cwd(), json: true });
+    expect(() => JSON.stringify(result)).not.toThrow();
+    const parsed = JSON.parse(JSON.stringify(result));
+    expect(parsed.checks).toBeDefined();
+    expect(parsed.criticalFailures).toBeDefined();
+    expect(parsed.summary).toBeDefined();
+  });
+});
+
+// ─── providers --json ─────────────────────────────────────────────────────────
+
+describe('providerCapabilities JSON shape', () => {
+  it('is an array with at least one entry', () => {
+    expect(Array.isArray(providerCapabilities)).toBe(true);
+    expect(providerCapabilities.length).toBeGreaterThan(0);
+  });
+
+  it('every entry has required fields', () => {
+    for (const cap of providerCapabilities) {
+      expect(typeof cap.provider).toBe('string');
+      expect(typeof cap.extraction).toBe('string');
+      expect(typeof cap.runtimeExecution).toBe('string');
+      expect(typeof cap.notes).toBe('string');
+    }
+  });
+
+  it('mock provider is present', () => {
+    expect(providerCapabilities.some(c => c.provider === 'mock')).toBe(true);
+  });
+
+  it('dry-run provider is present', () => {
+    expect(providerCapabilities.some(c => c.provider === 'dry-run')).toBe(true);
+  });
+
+  it('is JSON-serializable without throwing', () => {
+    expect(() => JSON.stringify(providerCapabilities)).not.toThrow();
+    const parsed = JSON.parse(JSON.stringify(providerCapabilities));
+    expect(Array.isArray(parsed)).toBe(true);
   });
 });

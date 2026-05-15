@@ -4,11 +4,13 @@
  * - Badge score input validation
  * - HTML report escaping (provider/extractor values)
  * - Invalid provider name rejection
+ * - OpenCodeGo sanitizeProviderText hardening
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { OpenRouterProvider } from '../src/providers/openrouter.js';
 import { generateScoreBadge, generateTrendBadge } from '../src/badge/generate.js';
+import { sanitizeProviderText } from '../src/providers/opencodeGo.js';
 
 // ─── OpenRouter API key masking ──────────────────────────────────────────────
 
@@ -136,5 +138,91 @@ describe('HTML report: provider/extractor name escaping', () => {
     } finally {
       await fs.default.remove(reportDir);
     }
+  });
+});
+
+// ─── OpenCodeGo sanitizeProviderText hardening ───────────────────────────────
+
+describe('sanitizeProviderText hardening', () => {
+  it('redacts known API key via split/join (no regex special-char issues)', () => {
+    const key = 'ocg-abc123def456xyz';
+    const result = sanitizeProviderText(`token=${key} is invalid`, key);
+    expect(result).not.toContain(key);
+    expect(result).toContain('[REDACTED_KEY]');
+  });
+
+  it('does not alter text when key is too short (< 8 chars)', () => {
+    const result = sanitizeProviderText('value=short', 'short');
+    expect(result).toBe('value=short');
+  });
+
+  it('redacts sk- prefixed keys', () => {
+    const result = sanitizeProviderText('using sk-supersecretkey123456');
+    expect(result).not.toContain('sk-supersecretkey123456');
+    expect(result).toContain('[REDACTED_KEY]');
+  });
+
+  it('redacts sk-or-v1- prefixed keys (OpenRouter format)', () => {
+    const result = sanitizeProviderText('key=sk-or-v1-abcdef1234567890xxxx');
+    expect(result).not.toContain('sk-or-v1-abcdef1234567890xxxx');
+    expect(result).toContain('[REDACTED_KEY]');
+  });
+
+  it('redacts sk-ant- prefixed keys (Anthropic format)', () => {
+    const result = sanitizeProviderText('key=sk-ant-api01-abcdef1234567890');
+    expect(result).not.toContain('sk-ant-api01-abcdef1234567890');
+    expect(result).toContain('[REDACTED_KEY]');
+  });
+
+  it('redacts Bearer token pattern', () => {
+    const result = sanitizeProviderText('Authorization: Bearer eyJhbGciOiJSUzI1NiJ9abcdefghijklmnopqrstuvwxyz');
+    expect(result).not.toContain('eyJhbGciOiJSUzI1NiJ9abcdefghijklmnopqrstuvwxyz');
+    expect(result).toContain('Bearer [REDACTED]');
+  });
+
+  it('does not redact short Bearer values (< 16 chars)', () => {
+    const result = sanitizeProviderText('Bearer shortval');
+    expect(result).toContain('Bearer shortval');
+  });
+
+  it('redacts JSON "api_key" field value', () => {
+    const result = sanitizeProviderText('{"api_key": "secretkey12345678"}');
+    expect(result).not.toContain('secretkey12345678');
+    expect(result).toContain('[REDACTED]');
+  });
+
+  it('redacts JSON "token" field value', () => {
+    const result = sanitizeProviderText('{"token": "mytoken12345678"}');
+    expect(result).not.toContain('mytoken12345678');
+    expect(result).toContain('[REDACTED]');
+  });
+
+  it('redacts OPENCODE_GO_API_KEY env var assignment', () => {
+    const result = sanitizeProviderText('OPENCODE_GO_API_KEY=abc123secretvalue');
+    expect(result).not.toContain('abc123secretvalue');
+    expect(result).toContain('[REDACTED]');
+  });
+
+  it('redacts OPENROUTER_API_KEY env var assignment', () => {
+    const result = sanitizeProviderText('OPENROUTER_API_KEY=sk-or-v1-testvalue1234');
+    expect(result).not.toContain('sk-or-v1-testvalue1234');
+  });
+
+  it('redacts GEMINI_API_KEY env var assignment', () => {
+    const result = sanitizeProviderText('GEMINI_API_KEY: AIzaSyAbcDefGhiJklMnopQrstuvWxyz');
+    expect(result).not.toContain('AIzaSyAbcDefGhiJklMnopQrstuvWxyz');
+    expect(result).toContain('[REDACTED]');
+  });
+
+  it('leaves harmless text unchanged', () => {
+    const result = sanitizeProviderText('HTTP 200 OK\n{"choices": [{"message": {"content": "hello world"}}]}');
+    expect(result).toBe('HTTP 200 OK\n{"choices": [{"message": {"content": "hello world"}}]}');
+  });
+
+  it('sanitizes catch-block style error messages with known key', () => {
+    const key = 'ocg-myrealkey9876543210';
+    const result = sanitizeProviderText(`OpenCode Go fetch failed: connect ${key}`, key);
+    expect(result).not.toContain(key);
+    expect(result).toContain('[REDACTED_KEY]');
   });
 });

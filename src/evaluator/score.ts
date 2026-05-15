@@ -10,6 +10,7 @@ export async function evaluateResult(scenario: Scenario, providerResult: Provide
       providerResult,
       assertionResults: [],
       status: 'SKIPPED',
+      skipReason: 'DRY_RUN',
       score: 0,
       ruleId: scenario.ruleId,
       scenarioId: scenario.id,
@@ -41,9 +42,17 @@ export async function evaluateResult(scenario: Scenario, providerResult: Provide
   const passedCount = evaluable.filter(result => result.passed).length;
 
   let status: 'PASS' | 'PARTIAL' | 'FAIL' | 'SKIPPED' = 'FAIL';
+  let skipReason: EvaluationResult['skipReason'] = undefined;
   if (evaluable.length === 0) {
     // No evaluable assertions (all skipped or none present) — treat as SKIPPED, not PASS.
     status = 'SKIPPED';
+    if (scenario.expectedAssertions.length === 0) {
+      skipReason = 'NO_ASSERTIONS';
+    } else if (assertionResults.every(r => r.skipped)) {
+      skipReason = 'ALL_ASSERTIONS_SKIPPED';
+    } else {
+      skipReason = 'UNKNOWN';
+    }
   } else if (passedCount === evaluable.length) {
     status = 'PASS';
   } else if (passedCount > 0) {
@@ -74,6 +83,7 @@ export async function evaluateResult(scenario: Scenario, providerResult: Provide
     providerResult,
     assertionResults,
     status,
+    skipReason,
     score,
     ruleId: scenario.ruleId,
     scenarioId: scenario.id,

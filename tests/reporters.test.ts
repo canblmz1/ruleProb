@@ -5,6 +5,7 @@ import path from 'path';
 import { writeHtmlReport } from '../src/reporters/html.js';
 import { writeJsonReport } from '../src/reporters/json.js';
 import { writeMarkdownReport } from '../src/reporters/markdown.js';
+import { writePrCommentReport } from '../src/reporters/prComment.js';
 import { Config, EvaluationResult } from '../src/types/index.js';
 
 const tempDirs: string[] = [];
@@ -84,6 +85,26 @@ function createFailingResult(): EvaluationResult {
   };
 }
 
+function createSkippedResult(skipReason: EvaluationResult['skipReason'] = 'DRY_RUN'): EvaluationResult {
+  return {
+    ...createResult(),
+    status: 'SKIPPED',
+    score: 0,
+    skipReason,
+    expected: 'Run the agent',
+    actual: 'Agent was skipped',
+    evidence: 'Provider was dry-run or a skeleton',
+    providerResult: {
+      finalAnswer: '',
+      changedFiles: [],
+      changedFileContents: {},
+      commands: [],
+      rawOutput: 'Dry run completed. No agent executed.',
+      success: true
+    }
+  };
+}
+
 describe('reporters', () => {
   it('writes markdown reports with source provenance and evidence fields', async () => {
     const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-md-'));
@@ -150,5 +171,91 @@ describe('reporters', () => {
     const json = await fs.readJson(path.join(reportDir, 'report.json'));
     expect(json.failureGroups[0].category).toBe('code_pattern_forbidden');
     expect(json.results[0].changedSnippets[0].snippet).toContain('const value: any = input;');
+  });
+
+  it('HTML report includes Chart.js script (inline bundle or CDN fallback)', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-chartjs-'));
+    tempDirs.push(reportDir);
+
+    await writeHtmlReport([createResult()], createConfig(reportDir));
+
+    const html = await fs.readFile(path.join(reportDir, 'report.html'), 'utf-8');
+    // Either an inline <script>...</script> with Chart.js content OR a CDN src tag must be present
+    const hasInlineChart = html.includes('Chart') && /<script>[^<]{1000,}/.test(html);
+    const hasCdnChart = html.includes('cdn.jsdelivr.net') && html.includes('chart.js');
+    expect(hasInlineChart || hasCdnChart).toBe(true);
+  });
+
+  it('HTML report inline script does not contain unescaped </script> closing tag in bundle', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-scriptesc-'));
+    tempDirs.push(reportDir);
+
+    await writeHtmlReport([createResult()], createConfig(reportDir));
+
+    const html = await fs.readFile(path.join(reportDir, 'report.html'), 'utf-8');
+    // Extract all inline script block contents and ensure none contain raw </script>
+    const inlineScripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)];
+    for (const [, content] of inlineScripts) {
+      // The content between <script> and </script> must not contain a raw </script>
+      expect(content.toLowerCase()).not.toContain('</script>');
+    }
+  });
+
+  it('renders skip reason in markdown, html, json, junit, and sarif reports', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-skip-'));
+    tempDirs.push(reportDir);
+    const skipped = createSkippedResult('DRY_RUN');
+    const config = createConfig(reportDir);
+
+    await writeMarkdownReport([skipped], config);
+    await writeHtmlReport([skipped], config);
+    await writeJsonReport([skipped], config);
+
+    const { writeSarifReport } = await import('../src/reporters/sarif.js');
+    const { writeJUnitReport } = await import('../src/reporters/junit.js');
+    await writeSarifReport([skipped], config);
+    await writeJUnitReport([skipped], config);
+
+    const markdown = await fs.readFile(path.join(reportDir, 'report.md'), 'utf-8');
+    expect(markdown).toContain('Skip Reason: DRY_RUN');
+
+    const html = await fs.readFile(path.join(reportDir, 'report.html'), 'utf-8');
+    expect(html).toContain('<strong>Skip Reason:</strong> DRY_RUN');
+
+    const json = await fs.readJson(path.join(reportDir, 'report.json'));
+    expect(json.results[0].skipReason).toBe('DRY_RUN');
+
+    const junit = await fs.readFile(path.join(reportDir, 'report.xml'), 'utf-8');
+    expect(junit).toContain('Skip Reason: DRY_RUN');
+
+    const sarif = await fs.readJson(path.join(reportDir, 'report.sarif'));
+    expect(sarif.runs[0].results[0].message.text).toContain('skip reason: DRY_RUN');
+  });
+
+  it('writes PR comment report with score, counts, and baseline delta', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-pr-'));
+    tempDirs.push(reportDir);
+    const config = createConfig(reportDir);
+
+    const delta = {
+      newPasses: [],
+      improvements: [createResult()],
+      unchanged: [],
+      regressions: [createFailingResult()]
+    };
+
+    const prCommentPath = await writePrCommentReport([createResult(), createFailingResult()], config, delta);
+    expect(prCommentPath).toBe(path.join(reportDir, 'report.pr-comment.md'));
+
+    const md = await fs.readFile(prCommentPath, 'utf-8');
+    expect(md).toContain('RuleProbe Compliance Report');
+    expect(md).toContain('Score:');
+    expect(md).toContain('✅ PASS');
+    expect(md).toContain('❌ FAIL');
+    expect(md).toContain('Baseline Comparison');
+    expect(md).toContain('Improvements:');
+    expect(md).toContain('Regressions:');
+    expect(md).toContain('Top Issues');
+    expect(md).toContain('View full report');
   });
 });

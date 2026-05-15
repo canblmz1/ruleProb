@@ -173,6 +173,65 @@ test('code pattern forbidden uses actual changed file contents', async () => {
   }
 });
 
+test('dry run provider returns SKIPPED with DRY_RUN skipReason', async () => {
+  const scenario: Scenario = {
+    id: 's1',
+    ruleId: 'r1',
+    title: 'Dry run test',
+    prompt: 'test',
+    sandboxFiles: {},
+    expectedAssertions: [{ type: 'forbidden_command', commandIncludes: 'rm' }]
+  };
+
+  const result = await evaluateResult(scenario, normalizeProviderResult({
+    success: true,
+    rawOutput: 'Dry run completed. No agent executed.'
+  }));
+
+  expect(result.status).toBe('SKIPPED');
+  expect(result.skipReason).toBe('DRY_RUN');
+});
+
+test('no assertions returns SKIPPED with NO_ASSERTIONS skipReason', async () => {
+  const scenario: Scenario = {
+    id: 's1',
+    ruleId: 'r1',
+    title: 'No assertions',
+    prompt: 'test',
+    sandboxFiles: {},
+    expectedAssertions: []
+  };
+
+  const result = await evaluateResult(scenario, normalizeProviderResult({ success: true }));
+
+  expect(result.status).toBe('SKIPPED');
+  expect(result.skipReason).toBe('NO_ASSERTIONS');
+});
+
+test('all assertions skipped returns SKIPPED with ALL_ASSERTIONS_SKIPPED skipReason', async () => {
+  const scenario: Scenario = {
+    id: 's1',
+    ruleId: 'r1',
+    title: 'All skipped',
+    prompt: 'test',
+    sandboxFiles: {},
+    expectedAssertions: [
+      { type: 'code_pattern_required', pattern: 'unknown' },
+      { type: 'code_pattern_forbidden', pattern: 'any' }
+    ]
+  };
+
+  const result = await evaluateResult(scenario, normalizeProviderResult({
+    success: true,
+    rawOutput: 'ok',
+    changedFiles: [],
+    changedFileContents: {}
+  }));
+
+  expect(result.status).toBe('SKIPPED');
+  expect(result.skipReason).toBe('ALL_ASSERTIONS_SKIPPED');
+});
+
 test('required file change uses the extracted pattern instead of test-only globs', async () => {
   const sandboxDir = await createSandbox({
     id: 'required-file',

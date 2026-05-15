@@ -42,6 +42,28 @@ async function executeSingleAction(sandboxDir: string, action: AgentAction, resu
 
       const fullPath = path.join(sandboxDir, safeRelativePath);
 
+      // Symlink escape guard: parent directory'nin realpath'i sandbox dışına çıkıyor mu?
+      // path.resolve() symlink'leri takip etmez; fs.realpath() gerekli.
+      if (action.type === 'write_file' || action.type === 'append_file') {
+        const parentDir = path.dirname(fullPath);
+        let realParent: string;
+        let realSandbox: string;
+        try {
+          realParent = await resolveExistingAncestor(parentDir);
+          realSandbox = await fs.realpath(sandboxDir);
+        } catch {
+          // realpath başarısız olursa path.resolve fallback (mevcut davranış korunur)
+          realParent = path.resolve(parentDir);
+          realSandbox = path.resolve(sandboxDir);
+        }
+        if (!realParent.startsWith(realSandbox + path.sep) && realParent !== realSandbox) {
+          result.errors.push(`BLOCKED: symlink escape attempt: ${action.path}`);
+          result.evidence.push(`- Blocked symlink escape: ${action.path}`);
+          result.success = false;
+          return;
+        }
+      }
+
       if (action.type === 'write_file') {
         await fs.ensureDir(path.dirname(fullPath));
         await fs.writeFile(fullPath, action.content, 'utf-8');
@@ -112,6 +134,23 @@ function isForbiddenPath(relPath: string): boolean {
     return true;
   }
   return false;
+}
+
+/**
+ * Var olan en yakın ancestor dizini bul ve realpath'ini döndür.
+ * Parent henüz yoksa (ensureDir öncesi) create edilecek, o yüzden yukarı çıkarız.
+ */
+async function resolveExistingAncestor(dir: string): Promise<string> {
+  let current = dir;
+  while (true) {
+    if (await fs.pathExists(current)) {
+      return await fs.realpath(current);
+    }
+    const parent = path.dirname(current);
+    if (parent === current) break; // filesystem root
+    current = parent;
+  }
+  return dir;
 }
 
 // Reject any command containing shell metacharacters before allowlist/denylist checks.

@@ -99,3 +99,77 @@ describe('shell command security', () => {
     });
   });
 });
+
+// ─── Symlink escape protection ────────────────────────────────────────────────
+
+describe('symlink escape protection', () => {
+  // Windows'ta symlink oluşturmak Developer Mode veya admin gerektirir.
+  // Bu testler yalnızca unix platformlarında çalıştırılır.
+  const runOnUnix = process.platform !== 'win32';
+
+  it('allows normal write inside sandbox (no symlink involved)', async () => {
+    await withSandbox(async (dir) => {
+      const result = await executeActionPlan(dir, {
+        actions: [{ type: 'write_file', path: 'nested/safe.txt', content: 'ok' }]
+      });
+      expect(result.success).toBe(true);
+      expect(await fs.pathExists(path.join(dir, 'nested', 'safe.txt'))).toBe(true);
+    });
+  });
+
+  it('allows append inside sandbox (no symlink involved)', async () => {
+    await withSandbox(async (dir) => {
+      await fs.writeFile(path.join(dir, 'base.txt'), 'original', 'utf-8');
+      const result = await executeActionPlan(dir, {
+        actions: [{ type: 'append_file', path: 'base.txt', content: ' appended' }]
+      });
+      expect(result.success).toBe(true);
+      const content = await fs.readFile(path.join(dir, 'base.txt'), 'utf-8');
+      expect(content).toBe('original appended');
+    });
+  });
+
+  it('blocks write via symlink pointing outside sandbox', async () => {
+    if (!runOnUnix) return;
+
+    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), 'rp-outside-'));
+    try {
+      await withSandbox(async (dir) => {
+        // Sandbox içine bir symlink kur → sandbox dışına işaret ediyor
+        await fs.symlink(outsideDir, path.join(dir, 'escape-link'));
+
+        const result = await executeActionPlan(dir, {
+          actions: [{ type: 'write_file', path: 'escape-link/evil.txt', content: 'escaped' }]
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.errors.some(e => e.includes('BLOCKED'))).toBe(true);
+        // Dışarıdaki dizinde dosya oluşturulmamalı
+        expect(await fs.pathExists(path.join(outsideDir, 'evil.txt'))).toBe(false);
+      });
+    } finally {
+      await fs.remove(outsideDir);
+    }
+  });
+
+  it('blocks append via symlink pointing outside sandbox', async () => {
+    if (!runOnUnix) return;
+
+    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), 'rp-outside-'));
+    try {
+      await withSandbox(async (dir) => {
+        await fs.symlink(outsideDir, path.join(dir, 'escape-link'));
+
+        const result = await executeActionPlan(dir, {
+          actions: [{ type: 'append_file', path: 'escape-link/data.txt', content: 'escaped' }]
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.errors.some(e => e.includes('BLOCKED'))).toBe(true);
+        expect(await fs.pathExists(path.join(outsideDir, 'data.txt'))).toBe(false);
+      });
+    } finally {
+      await fs.remove(outsideDir);
+    }
+  });
+});

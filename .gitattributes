@@ -2,3 +2,7 @@
 * text=auto eol=lf
 *.cmd text eol=crlf
 *.bat text eol=crlf
+
+# Fixture and example instruction files must stay LF to keep extraction regex stable
+benchmarks/fixtures/* text eol=lf
+examples/**/* text eol=lf

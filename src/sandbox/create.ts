@@ -10,16 +10,25 @@ export async function createSandbox(scenario: Scenario): Promise<string> {
   
   await fs.ensureDir(sandboxDir);
 
+  // macOS'ta os.tmpdir() /var/folders/... → /private/var/folders/... symlink'i döndürür.
+  // Canonical realpath kullanarak getSafeRelativePath karşılaştırmaları tutarlı çalışsın.
+  let realSandboxDir: string;
+  try {
+    realSandboxDir = await fs.realpath(sandboxDir);
+  } catch {
+    realSandboxDir = sandboxDir;
+  }
+
   for (const [filePath, content] of Object.entries(scenario.sandboxFiles)) {
-    const fullPath = path.join(sandboxDir, filePath);
+    const fullPath = path.join(realSandboxDir, filePath);
     await fs.ensureDir(path.dirname(fullPath));
     await fs.writeFile(fullPath, content, 'utf-8');
   }
 
   // Init git to track changes
   try {
-    await execa('git', ['init'], { cwd: sandboxDir });
-    await execa('git', ['add', '.'], { cwd: sandboxDir });
+    await execa('git', ['init'], { cwd: realSandboxDir });
+    await execa('git', ['add', '.'], { cwd: realSandboxDir });
     await execa('git', [
       '-c', 'user.name=RuleProbe',
       '-c', 'user.email=ruleprobe@example.com',
@@ -27,12 +36,12 @@ export async function createSandbox(scenario: Scenario): Promise<string> {
       '-m', 'Initial commit',
       '--allow-empty',
       '--author=RuleProbe <ruleprobe@example.com>'
-    ], { cwd: sandboxDir });
+    ], { cwd: realSandboxDir });
   } catch (e) {
     console.warn("Failed to initialize git in sandbox. Ensure git is installed.");
   }
 
-  return sandboxDir;
+  return realSandboxDir;
 }
 
 export async function cleanupSandbox(sandboxDir: string): Promise<void> {

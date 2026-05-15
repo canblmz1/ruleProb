@@ -104,6 +104,8 @@ export interface EvaluationResult {
   sourceFile?: string;
   sourceLine?: number;
   ruleText?: string;
+  /** Machine-readable reason when status is SKIPPED */
+  skipReason?: "DRY_RUN" | "NO_ASSERTIONS" | "ALL_ASSERTIONS_SKIPPED" | "UNKNOWN";
 }
 
 export interface Config {
@@ -123,6 +125,10 @@ export interface Config {
   debugExtractor?: boolean;
   /** Set to false to disable AI extraction cache (default: true) */
   useExtractionCache?: boolean;
+  /** Save current run as baseline, or compare against existing baseline */
+  baseline?: boolean;
+  /** Exit with code 1 if any scenario regressed vs baseline */
+  failOnRegression?: boolean;
 }
 
 export interface WriteFileAction {

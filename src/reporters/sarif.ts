@@ -35,7 +35,7 @@ export async function writeSarifReport(results: EvaluationResult[], config: Conf
       ruleId: r.ruleId,
       level,
       message: {
-        text: `[${r.status}] ${r.scenario.title}: ${r.actual}`
+        text: `[${r.status}] ${r.scenario.title}: ${r.actual}${r.skipReason ? ` (skip reason: ${r.skipReason})` : ''}`
       },
       locations: [{
         physicalLocation: {

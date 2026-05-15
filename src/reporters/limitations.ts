@@ -57,7 +57,15 @@ export function collectResultLimitationNotes(result: EvaluationResult): Limitati
   const lower = raw.toLowerCase();
 
   if (result.status === 'SKIPPED') {
-    add(notes, 'skipped-results', 'This scenario was skipped, so it does not prove runtime compliance.');
+    if (result.skipReason === 'DRY_RUN') {
+      add(notes, 'skipped-dry-run', 'This scenario was skipped because the provider is in dry-run or stub mode.');
+    } else if (result.skipReason === 'NO_ASSERTIONS') {
+      add(notes, 'skipped-no-assertions', 'This scenario was skipped because the rule has no testable assertions.');
+    } else if (result.skipReason === 'ALL_ASSERTIONS_SKIPPED') {
+      add(notes, 'skipped-no-data', 'This scenario was skipped because the provider did not return inspectable file contents needed to evaluate code-pattern assertions.');
+    } else {
+      add(notes, 'skipped-results', 'This scenario was skipped, so it does not prove runtime compliance.');
+    }
   }
 
   if (lower.includes('requires') && lower.includes('api_key')) {

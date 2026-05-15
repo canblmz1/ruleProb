@@ -31,7 +31,8 @@ export async function writeJUnitReport(results: EvaluationResult[], config: Conf
       return `${open}\n      <failure message="${msg}" type="partial"/>\n    </testcase>`;
     }
     if (r.status === 'SKIPPED') {
-      return `${open}\n      <skipped/>\n    </testcase>`;
+      const msg = r.skipReason ? `Skip Reason: ${r.skipReason}` : 'Scenario was skipped';
+      return `${open}\n      <skipped message="${escapeXml(msg)}"/>\n    </testcase>`;
     }
     return `${open}\n    </testcase>`;
   }).join('\n');

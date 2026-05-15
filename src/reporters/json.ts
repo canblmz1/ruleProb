@@ -2,11 +2,12 @@ import { EvaluationResult, Config } from '../types/index.js';
 import fs from 'fs-extra';
 import path from 'path';
 import { buildReportProofModel, getChangedSnippets, resultLimitationMessages } from './proof.js';
+import { BaselineDelta } from '../baseline/compare.js';
 
-export async function writeJsonReport(results: EvaluationResult[], config: Config) {
+export async function writeJsonReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta) {
   const proof = buildReportProofModel(results, config);
 
-  const report = {
+  const report: Record<string, unknown> = {
     overview: {
       totalRules: results.length,
       passed: results.filter(r => r.status === 'PASS').length,
@@ -32,6 +33,21 @@ export async function writeJsonReport(results: EvaluationResult[], config: Confi
       changedSnippets: getChangedSnippets(result)
     }))
   };
+
+  if (delta) {
+    report.baselineDelta = {
+      newPasses: delta.newPasses.length,
+      improvements: delta.improvements.length,
+      unchanged: delta.unchanged.length,
+      regressions: delta.regressions.length,
+      regressionDetails: delta.regressions.map(r => ({
+        scenarioId: r.scenarioId,
+        title: r.scenario.title,
+        status: r.status,
+        score: r.score
+      }))
+    };
+  }
 
   await fs.ensureDir(config.reportDir);
   await fs.writeFile(path.join(config.reportDir, 'report.json'), JSON.stringify(report, null, 2), 'utf-8');

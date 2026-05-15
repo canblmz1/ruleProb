@@ -10,7 +10,7 @@ export interface DoctorCheck {
   detail: string;
 }
 
-export async function runDoctor(options: { cwd?: string } = {}): Promise<{ checks: DoctorCheck[]; criticalFailures: number }> {
+export async function runDoctor(options: { cwd?: string; json?: boolean } = {}): Promise<{ checks: DoctorCheck[]; criticalFailures: number; summary: string }> {
   const checks: DoctorCheck[] = [];
   const cwd = options.cwd || process.cwd();
 
@@ -29,21 +29,26 @@ export async function runDoctor(options: { cwd?: string } = {}): Promise<{ check
   checks.push(await checkRuleprobeWriteable(cwd));
 
   const criticalFailures = checks.filter(check => check.status === 'FAIL').length;
+  const summary = criticalFailures > 0
+    ? `${criticalFailures} critical issue(s) found`
+    : 'no critical issues';
 
-  for (const check of checks) {
-    const tag = check.status === 'PASS' ? chalk.green('PASS')
-      : check.status === 'WARN' ? chalk.yellow('WARN')
-      : chalk.red('FAIL');
-    console.log(`${tag}  ${check.name}: ${check.detail}`);
+  if (!options.json) {
+    for (const check of checks) {
+      const tag = check.status === 'PASS' ? chalk.green('PASS')
+        : check.status === 'WARN' ? chalk.yellow('WARN')
+        : chalk.red('FAIL');
+      console.log(`${tag}  ${check.name}: ${check.detail}`);
+    }
+
+    if (criticalFailures > 0) {
+      console.log(chalk.red(`\nDoctor found ${criticalFailures} critical issue(s).`));
+    } else {
+      console.log(chalk.green('\nDoctor: no critical issues detected.'));
+    }
   }
 
-  if (criticalFailures > 0) {
-    console.log(chalk.red(`\nDoctor found ${criticalFailures} critical issue(s).`));
-  } else {
-    console.log(chalk.green('\nDoctor: no critical issues detected.'));
-  }
-
-  return { checks, criticalFailures };
+  return { checks, criticalFailures, summary };
 }
 
 function checkNodeVersion(): DoctorCheck {
