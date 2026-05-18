@@ -3,7 +3,7 @@ Output demo.gif
 Set FontSize 14
 Set Width 110
 Set Height 36
-Set Theme "Catppuccin Mocha"
+Set Theme "dark"
 Set PlaybackSpeed 1.2
 Set TypingSpeed 40ms
 Set CursorBlink false
