@@ -34,14 +34,19 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Install ruleprobe globally from dist
-        run: npm install -g .
+      - name: Install ruleprobe to /usr/local/bin
+        run: |
+          npm install -g .
+          # Make absolutely sure it's at a known path VHS shell can find
+          RULEPROBE_BIN=$(which ruleprobe || npm bin -g)/ruleprobe
+          sudo cp "$RULEPROBE_BIN" /usr/local/bin/ruleprobe 2>/dev/null || true
+          echo "ruleprobe path: $(which ruleprobe)"
+          ruleprobe --version
 
       - name: Install VHS and system deps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg ttyd
-          # Install VHS from GitHub releases
           VHS_VERSION="0.9.0"
           wget -qO vhs.tar.gz "https://github.com/charmbracelet/vhs/releases/download/v${VHS_VERSION}/vhs_${VHS_VERSION}_Linux_x86_64.tar.gz"
           mkdir -p vhs_extracted
@@ -53,6 +58,8 @@ jobs:
 
       - name: Generate demo GIF
         run: vhs demo.tape
+        env:
+          PATH: /usr/local/bin:/usr/bin:/bin
 
       - name: Commit demo GIF
         uses: stefanzweifel/git-auto-commit-action@v5

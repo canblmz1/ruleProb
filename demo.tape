@@ -1,24 +1,22 @@
 Output demo.gif
 
-Set FontSize 13
-Set Width 1200
-Set Height 600
+Set FontSize 22
+Set Width 1400
+Set Height 800
 Set Theme "Dark+"
-Set PlaybackSpeed 1.2
-Set TypingSpeed 35ms
+Set PlaybackSpeed 1.0
+Set TypingSpeed 50ms
 Set CursorBlink false
-Set Padding 20
+Set Padding 24
 
-# Step 1: list-rules (strict example)
+# Show rule extraction
 Type "ruleprobe list-rules examples/strict"
-Sleep 400ms
 Enter
-Sleep 4s
+Sleep 5s
 
-# Step 2: run with mock provider
+# Show compliance run
 Type "ruleprobe run examples/strict --provider mock --fail-below 0"
-Sleep 400ms
 Enter
-Sleep 6s
+Sleep 8s
 
 Sleep 2s
