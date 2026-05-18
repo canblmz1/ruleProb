@@ -7,6 +7,8 @@ on:
     paths:
       - 'demo.tape'
       - 'examples/basic/**'
+      - 'examples/strict/**'
+      - 'examples/minimal/**'
 
 permissions:
   contents: write
@@ -35,14 +37,19 @@ jobs:
       - name: Install ruleprobe globally from dist
         run: npm install -g .
 
-      - name: Install VHS system dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg ttyd
+      - name: Install VHS and system deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg ttyd
+          # Install VHS from GitHub releases (bundles its own renderer)
+          VHS_VERSION="0.9.0"
+          wget -qO vhs.tar.gz "https://github.com/charmbracelet/vhs/releases/download/v${VHS_VERSION}/vhs_${VHS_VERSION}_Linux_x86_64.tar.gz"
+          tar -xzf vhs.tar.gz vhs
+          sudo mv vhs /usr/local/bin/vhs
+          vhs --version
 
-      - name: Generate demo GIF with VHS
-        uses: charmbracelet/vhs-action@v2
-        with:
-          path: demo.tape
-          install-fonts: false
+      - name: Generate demo GIF
+        run: vhs demo.tape
 
       - name: Commit demo GIF
         uses: stefanzweifel/git-auto-commit-action@v5
