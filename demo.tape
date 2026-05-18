@@ -3,7 +3,7 @@ Output demo.gif
 Set FontSize 13
 Set Width 120
 Set Height 38
-Set Theme "dark"
+Set Theme "Dark+"
 Set PlaybackSpeed 1.2
 Set TypingSpeed 35ms
 Set CursorBlink false
