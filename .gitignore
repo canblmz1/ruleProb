@@ -36,3 +36,7 @@ Thumbs.db
 coverage/
 tmp/
 temp/
+
+# Private strategy docs (not for public repo)
+PRIVATE_ROADMAP.md
+STRATEGY.md
