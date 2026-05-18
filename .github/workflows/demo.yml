@@ -41,11 +41,14 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg ttyd
-          # Install VHS from GitHub releases (bundles its own renderer)
+          # Install VHS from GitHub releases
           VHS_VERSION="0.9.0"
           wget -qO vhs.tar.gz "https://github.com/charmbracelet/vhs/releases/download/v${VHS_VERSION}/vhs_${VHS_VERSION}_Linux_x86_64.tar.gz"
-          tar -xzf vhs.tar.gz vhs
-          sudo mv vhs /usr/local/bin/vhs
+          mkdir -p vhs_extracted
+          tar -xzf vhs.tar.gz -C vhs_extracted
+          VHS_BIN=$(find vhs_extracted -name 'vhs' -type f | head -1)
+          sudo cp "$VHS_BIN" /usr/local/bin/vhs
+          sudo chmod +x /usr/local/bin/vhs
           vhs --version
 
       - name: Generate demo GIF
