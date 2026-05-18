@@ -2,7 +2,7 @@
 
 > **AI coding rules are documentation until you test them.**
 
-[![Node >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![npm](https://img.shields.io/npm/v/ruleprobe)](https://www.npmjs.com/package/ruleprobe)
+[![Node >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![npm](https://img.shields.io/npm/v/ruleprobe-ai)](https://www.npmjs.com/package/ruleprobe-ai)
 
 RuleProbe is a CLI that turns AI instruction files (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules`, Copilot instructions) into executable compliance tests. It extracts rules, generates disposable sandbox scenarios, runs an AI provider against each one, and produces a scored JSON/Markdown/HTML report.
 
@@ -26,8 +26,8 @@ RuleProbe is a CLI that turns AI instruction files (`CLAUDE.md`, `AGENTS.md`, `.
 ## Quick start
 
 ```bash
-npm install -g ruleprobe
-# or: pnpm add -g ruleprobe
+npm install -g ruleprobe-ai
+# or: pnpm add -g ruleprobe-ai
 
 # Run mock demo — no API key needed
 ruleprobe run examples/basic --provider mock
@@ -313,7 +313,7 @@ Use real providers only with repositories and credentials you are comfortable te
 ```bash
 pnpm install
 pnpm build        # tsup ESM + DTS
-pnpm test         # vitest (53 tests)
+pnpm test         # vitest (175 tests)
 pnpm typecheck    # tsc --noEmit
 pnpm dev doctor   # local diagnostics
 

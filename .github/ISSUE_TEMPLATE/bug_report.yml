@@ -1,0 +1,71 @@
+name: Bug Report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the sections below.
+
+  - type: input
+    id: version
+    attributes:
+      label: RuleProbe version
+      placeholder: "e.g. 0.3.1 (run: ruleprobe --version)"
+    validations:
+      required: true
+
+  - type: input
+    id: command
+    attributes:
+      label: Command used
+      placeholder: "e.g. ruleprobe run . --provider gemini --extractor hybrid"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - mock
+        - dry-run
+        - gemini
+        - openrouter
+        - claude-code
+        - opencode-go
+    validations:
+      required: true
+
+  - type: dropdown
+    id: extractor
+    attributes:
+      label: Extractor
+      options:
+        - deterministic
+        - hybrid
+        - ai-assisted
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: What actually happened? Paste sanitized error output here.
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS and Node version
+      placeholder: "e.g. Windows 11, Node 20.11"
+    validations:
+      required: true

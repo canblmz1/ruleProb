@@ -1,6 +1,6 @@
 {
-  "name": "ruleprobe",
-  "version": "0.3.0",
+  "name": "ruleprobe-ai",
+  "version": "0.3.1",
   "description": "Test whether your repo AI instructions actually survive execution.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,12 +25,19 @@
   "keywords": [
     "ai",
     "agents",
+    "claude-md",
+    "agents-md",
+    "cursor-rules",
+    "copilot-instructions",
+    "ai-instruction-testing",
+    "llm-compliance",
     "benchmark",
     "cli",
     "compliance",
     "claude",
     "instructions",
-    "testing"
+    "testing",
+    "ruleprobe"
   ],
   "engines": {
     "node": ">=18"

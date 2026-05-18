@@ -3,6 +3,9 @@ import "dotenv/config";
 import { Command } from 'commander';
 import chalk from 'chalk';
 import path from 'path';
+import { createRequire } from 'module';
+const _require = createRequire(import.meta.url);
+const _pkg = _require('../../package.json') as { version: string };
 import { loadConfig } from '../config/load.js';
 import { discoverInstructions } from '../instructions/discover.js';
 import { routeExtraction } from '../extractors/merge.js';
@@ -42,7 +45,7 @@ const program = new Command();
 program
   .name('ruleprobe')
   .description('Test AI coding agent instructions at runtime')
-  .version('0.3.0');
+  .version(_pkg.version);
 
 program
   .command('init [dir]')
