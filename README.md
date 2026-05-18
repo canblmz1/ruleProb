@@ -28,11 +28,12 @@ RuleProbe is a CLI that turns AI instruction files (`CLAUDE.md`, `AGENTS.md`, `.
 ## Quick start
 
 ```bash
-npm install -g ruleprobe-ai
-# or: pnpm add -g ruleprobe-ai
+# Zero install — try it now
+npx ruleprobe-ai run examples/strict --provider mock
 
-# Run mock demo — no API key needed
-ruleprobe run examples/basic --provider mock
+# Or install globally
+npm install -g ruleprobe-ai
+# pnpm add -g ruleprobe-ai
 
 # Real provider (Gemini)
 GEMINI_API_KEY=... ruleprobe run . --provider gemini --extractor hybrid --fail-below 70
@@ -44,7 +45,7 @@ From source:
 git clone https://github.com/canblmz1/ruleProb
 cd ruleProb
 pnpm install && pnpm build
-pnpm dev run examples/basic --provider mock
+pnpm dev run examples/strict --provider mock
 ```
 
 ---
@@ -78,6 +79,22 @@ pnpm dev run examples/basic --provider mock
 --keep-sandbox              Do not delete sandbox after run
 --watch                     Watch instruction files and re-run on changes
 --badge                     Generate SVG score and trend badges after run
+```
+
+---
+
+## Examples
+
+| Example | Description | Rules |
+|---|---|---|
+| `examples/basic` | Minimal starter — package manager + one forbidden file | 6 |
+| `examples/minimal` | 3-rule zero-friction intro (package manager, forbidden command, required command) | 3 |
+| `examples/strict` | Full-coverage showcase — all rule categories, deliberate failures | 17 |
+
+```bash
+# Try the strict example (no API key)
+npx ruleprobe-ai list-rules examples/strict
+npx ruleprobe-ai run examples/strict --provider mock --fail-below 0
 ```
 
 ---

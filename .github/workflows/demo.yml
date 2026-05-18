@@ -35,6 +35,9 @@ jobs:
       - name: Install ruleprobe globally from dist
         run: npm install -g .
 
+      - name: Install VHS system dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg ttyd
+
       - name: Generate demo GIF with VHS
         uses: charmbracelet/vhs-action@v2
         with:
