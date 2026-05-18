@@ -52,13 +52,13 @@ pnpm dev run examples/basic --provider mock
 | Command | Description |
 |---|---|
 | `ruleprobe run [dir]` | Run all compliance tests and write reports |
-| `ruleprobe list-rules [dir]` | Preview extracted rules (no sandbox) |
+| `ruleprobe list-rules [dir]` | Preview extracted rules (no sandbox); use `--show-scenarios` to preview generated test scenarios |
 | `ruleprobe analyze [dir]` | AI extraction only — emit JSON candidates, no evaluation |
 | `ruleprobe compare [dir]` | Deterministic vs hybrid extraction diff, or branch vs base ref |
 | `ruleprobe doctor` | Local diagnostics: Node, pnpm, git, claude, dist, env keys |
 | `ruleprobe providers` | Show provider capability matrix |
 | `ruleprobe clear-cache` | Wipe AI extraction cache at `.ruleprobe/cache/` |
-| `ruleprobe init` | Write a starter `ruleprobe.config.json` |
+| `ruleprobe init [dir]` | Write a starter `ruleprobe.config.json`; use `--from-claude` to auto-detect instruction files |
 | `ruleprobe report` | Show latest report path |
 | `ruleprobe badge` | Generate score and trend SVG badges |
 
@@ -244,6 +244,8 @@ Copy the example GitHub Actions workflow:
 cp .github/workflows/ruleprobe-compliance.example.yml \
    .github/workflows/ruleprobe-compliance.yml
 ```
+
+The workflow automatically publishes the compliance report to the GitHub Actions **Step Summary**, so results appear inline in the job view without opening an artifact.
 
 Full walkthrough: [docs/github-actions.md](docs/github-actions.md)
 

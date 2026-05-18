@@ -1,7 +1,7 @@
 import { EvaluationResult, Config } from '../types/index.js';
 import fs from 'fs-extra';
 import path from 'path';
-import { buildReportProofModel, formatChangedFiles, formatSource, getChangedSnippets, resultLimitationMessages, CrossTab } from './proof.js';
+import { buildReportProofModel, formatChangedFiles, formatSource, getChangedSnippets, resultLimitationMessages, CrossTab, CoverageModel } from './proof.js';
 import { BaselineDelta } from '../baseline/compare.js';
 
 export async function writeMarkdownReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta) {
@@ -47,6 +47,23 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
         lines.push(`- [${r.status}] ${r.scenario.title}`);
       }
     }
+    lines.push('');
+  }
+
+  lines.push(...formatCoverage(proof.coverage), '');
+
+  const skippedCodePatterns = results.filter(r =>
+    r.status === 'SKIPPED' &&
+    (r.category === 'code_pattern_forbidden' || r.category === 'code_pattern_required')
+  );
+  if (skippedCodePatterns.length > 0) {
+    lines.push('## Skipped Guidance');
+    lines.push(`${skippedCodePatterns.length} code pattern rule(s) were skipped because no changed file contents were available.`);
+    lines.push('To evaluate these rules, re-run with a code-editing provider:');
+    lines.push('```');
+    lines.push('ruleprobe run <dir> --provider claude-code');
+    lines.push('ruleprobe run <dir> --provider openrouter');
+    lines.push('```');
     lines.push('');
   }
 
@@ -120,6 +137,14 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
 
   await fs.ensureDir(config.reportDir);
   await fs.writeFile(path.join(config.reportDir, 'report.md'), lines.join('\n'), 'utf-8');
+}
+
+function formatCoverage(coverage: CoverageModel): string[] {
+  return [
+    '## Rule Coverage',
+    `- Scenarios evaluated: ${coverage.evaluated}/${coverage.totalScenarios} (${coverage.effectivePct}%)`,
+    `- Skipped: ${coverage.skipped}`
+  ];
 }
 
 function formatFailureGroups(groups: ReturnType<typeof buildReportProofModel>['failureGroups']): string[] {

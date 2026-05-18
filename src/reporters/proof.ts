@@ -46,10 +46,18 @@ export interface ProofFriendlyShareBlock {
   markdown: string;
 }
 
+export interface CoverageModel {
+  totalScenarios: number;
+  evaluated: number;
+  skipped: number;
+  effectivePct: number;
+}
+
 export interface ReportProofModel {
   finalScore: number;
   weightedScore: number;
   scoreBreakdown: ScoreBreakdown;
+  coverage: CoverageModel;
   knownLimitations: LimitationNote[];
   failureGroups: FailureGroup[];
   crossTab: CrossTab;
@@ -57,6 +65,14 @@ export interface ReportProofModel {
 }
 
 const SEVERITY_WEIGHTS: Record<string, number> = { high: 3, medium: 2, low: 1 };
+
+export function buildCoverageModel(results: EvaluationResult[]): CoverageModel {
+  const totalScenarios = results.length;
+  const skipped = results.filter(r => r.status === 'SKIPPED').length;
+  const evaluated = totalScenarios - skipped;
+  const effectivePct = totalScenarios > 0 ? Math.round((evaluated / totalScenarios) * 100) : 0;
+  return { totalScenarios, evaluated, skipped, effectivePct };
+}
 
 export function buildReportProofModel(results: EvaluationResult[], config: Config): ReportProofModel {
   const scorable = results.filter(r => r.status !== 'SKIPPED');
@@ -66,6 +82,7 @@ export function buildReportProofModel(results: EvaluationResult[], config: Confi
   const finalScore = isNaN(overallScore) ? 0 : overallScore;
 
   const scoreBreakdown = computeWeightedScore(results);
+  const coverage = buildCoverageModel(results);
   const failureGroups = groupFailures(results);
   const crossTab = buildCrossTab(results);
   const knownLimitations = collectLimitationNotes(results, config);
@@ -75,6 +92,7 @@ export function buildReportProofModel(results: EvaluationResult[], config: Confi
     finalScore,
     weightedScore: scoreBreakdown.weighted,
     scoreBreakdown,
+    coverage,
     knownLimitations,
     failureGroups,
     crossTab,
@@ -213,49 +231,18 @@ function buildShareBlock(
 export function getChangedSnippets(result: EvaluationResult, limit = 3): ChangedSnippet[] {
   const snippets: ChangedSnippet[] = [];
   const entries = Object.entries(result.providerResult.changedFileContents || {});
-  const baseline = (result.providerResult as any).baselineFileContents as Record<string, string | null> | undefined;
-
   for (const [file, content] of entries) {
     if (snippets.length >= limit) break;
     if (typeof content !== 'string') continue;
     snippets.push({
       file,
-      snippet: baseline ? diffSnippet(baseline[file] ?? null, content) : compactSnippet(content)
+      snippet: compactSnippet(content)
     });
   }
 
   return snippets;
 }
 
-function diffSnippet(beforeContent: string | null, afterContent: string): string {
-  const beforeSet = new Set(
-    typeof beforeContent === 'string'
-      ? beforeContent.replace(/\r\n/g, '\n').split('\n')
-      : []
-  );
-  const afterLines = afterContent.replace(/\r\n/g, '\n').split('\n');
-  const lines: string[] = [];
-  for (const line of afterLines) {
-    if (lines.length >= 12) {
-      lines.push('... (snippet truncated)');
-      break;
-    }
-    lines.push((beforeSet.has(line) ? '  ' : '+ ') + line.trimEnd());
-  }
-  if (typeof beforeContent === 'string') {
-    const afterSet = new Set(afterLines);
-    let shownRemoved = 0;
-    for (const line of beforeContent.replace(/\r\n/g, '\n').split('\n')) {
-      if (shownRemoved >= 4) break;
-      if (line && !afterSet.has(line)) {
-        lines.push(`- ${line.trimEnd()}`);
-        shownRemoved++;
-      }
-    }
-  }
-  const joined = lines.join('\n');
-  return joined.length > 700 ? `${joined.slice(0, 697)}...` : joined;
-}
 
 export function formatSource(sourceFile?: string, sourceLine?: number): string {
   if (!sourceFile) return 'Unknown';

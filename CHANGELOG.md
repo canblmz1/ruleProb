@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.3.1 - Workflow Improvements
+
+v0.3.1 ships targeted improvements to coverage visibility, skipped-result guidance, CI integration, and the developer workflow:
+
+- **Rule Coverage Summary**: `ruleprobe run` now prints `Rule coverage: N/M evaluated (X%) Skipped: K` after the score, and the markdown report includes a `## Rule Coverage` section
+- **Actionable Skipped Guidance**: When `code_pattern_*` rules are SKIPPED because no file contents are available, the CLI, report, and assertion evidence now suggest re-running with `--provider claude-code` or `--provider openrouter`
+- **GitHub Step Summary**: The example CI workflow (`ruleprobe-compliance.example.yml`) now writes the markdown report to `$GITHUB_STEP_SUMMARY` so results appear inline in the Actions job view
+- **`ruleprobe init --from-claude`**: New flag that auto-detects existing instruction files (CLAUDE.md, AGENTS.md, .cursor/rules, etc.) in the target directory and populates `instructionFiles` with the paths that actually exist
+- **`ruleprobe list-rules --show-scenarios`**: New flag that prints a preview of each rule's generated test scenario title and prompt before running a full evaluation
+- **Dependency hygiene**: `chart.js` moved to `optionalDependencies`; esbuild CVE (GHSA-67mh-4wv8-2f99) resolved via pnpm override; vitest upgraded to v2.1.9
+
 ## v0.2 - Proof And Comparison
 
 v0.2 turns RuleProbe from an honest beta into a more team-usable compliance tool:

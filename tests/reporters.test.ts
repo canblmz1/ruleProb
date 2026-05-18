@@ -232,6 +232,36 @@ describe('reporters', () => {
     expect(sarif.runs[0].results[0].message.text).toContain('skip reason: DRY_RUN');
   });
 
+  it('markdown report includes rule coverage section', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-coverage-'));
+    tempDirs.push(reportDir);
+    const config = createConfig(reportDir);
+    const skipped = createSkippedResult('DRY_RUN');
+
+    await writeMarkdownReport([createResult(), createFailingResult(), skipped], config);
+
+    const markdown = await fs.readFile(path.join(reportDir, 'report.md'), 'utf-8');
+    expect(markdown).toContain('## Rule Coverage');
+    expect(markdown).toContain('Scenarios evaluated: 2/3');
+    expect(markdown).toContain('Skipped: 1');
+  });
+
+  it('markdown report includes skipped guidance section for code_pattern rules', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-skipped-guidance-'));
+    tempDirs.push(reportDir);
+    const config = createConfig(reportDir);
+    const skipped = createSkippedResult('DRY_RUN');
+    skipped.category = 'code_pattern_forbidden';
+
+    await writeMarkdownReport([skipped], config);
+
+    const markdown = await fs.readFile(path.join(reportDir, 'report.md'), 'utf-8');
+    expect(markdown).toContain('## Skipped Guidance');
+    expect(markdown).toContain('code pattern rule(s) were skipped');
+    expect(markdown).toContain('--provider claude-code');
+    expect(markdown).toContain('--provider openrouter');
+  });
+
   it('writes PR comment report with score, counts, and baseline delta', async () => {
     const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-pr-'));
     tempDirs.push(reportDir);

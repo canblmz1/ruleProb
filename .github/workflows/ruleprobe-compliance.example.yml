@@ -62,6 +62,14 @@ jobs:
         run: pnpm dev compare . --base origin/${{ github.base_ref }} --extractor deterministic
         continue-on-error: true
 
+      - name: Publish RuleProbe report to GitHub Step Summary
+        if: always()
+        run: |
+          if [ -f .ruleprobe/report.md ]; then
+            echo "## RuleProbe Compliance Report" >> $GITHUB_STEP_SUMMARY
+            cat .ruleprobe/report.md >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Upload RuleProbe reports
         uses: actions/upload-artifact@v4
         if: always()

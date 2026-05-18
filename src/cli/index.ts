@@ -12,7 +12,7 @@ import { runAnalyze } from '../analyze/runAnalyze.js';
 import { compareDeterministicToHybrid, formatRuleComparison } from '../compare/extraction.js';
 import { compareWithBaseRef, formatBaseRefComparison } from '../compare/baseRef.js';
 import { generateScenarios } from '../scenarios/generate.js';
-import { createSandbox, cleanupSandbox, getChangedFileContentsAtHead } from '../sandbox/create.js';
+import { createSandbox, cleanupSandbox } from '../sandbox/create.js';
 import { MockProvider } from '../providers/mock.js';
 import { DryRunProvider } from '../providers/dryRun.js';
 import { OpenRouterProvider } from '../providers/openrouter.js';
@@ -45,17 +45,34 @@ program
   .version('0.3.0');
 
 program
-  .command('init')
+  .command('init [dir]')
   .description('Initialize ruleprobe config')
-  .action(async () => {
-    await fs.writeFile('ruleprobe.config.json', JSON.stringify({
+  .option('--from-claude', 'Auto-detect instruction files (CLAUDE.md, AGENTS.md, .cursor/rules, etc.) from the target directory')
+  .action(async (dir: string | undefined, options) => {
+    const targetDir = dir ? path.resolve(dir) : process.cwd();
+    const defaultPatterns = ["CLAUDE.md", "AGENTS.md", ".cursor/rules/*.mdc", ".github/copilot-instructions.md"];
+
+    let instructionFiles = defaultPatterns;
+    if (options.fromClaude) {
+      const glob = await import('fast-glob');
+      const found = await glob.default(defaultPatterns, { cwd: targetDir, ignore: ['node_modules/**'] });
+      if (found.length > 0) {
+        instructionFiles = found;
+        console.log(chalk.green(`Detected ${found.length} instruction file(s): ${found.join(', ')}`));
+      } else {
+        console.log(chalk.yellow('No instruction files detected; using default patterns.'));
+      }
+    }
+
+    const configPath = path.join(targetDir, 'ruleprobe.config.json');
+    await fs.writeFile(configPath, JSON.stringify({
       provider: "mock",
-      instructionFiles: ["CLAUDE.md", "AGENTS.md", ".cursor/rules/*.mdc", ".github/copilot-instructions.md"],
+      instructionFiles,
       reportDir: ".ruleprobe",
       failBelow: 70,
       keepSandbox: false
     }, null, 2));
-    console.log(chalk.green('Initialized ruleprobe.config.json with minimal config'));
+    console.log(chalk.green(`Initialized ${configPath} with minimal config`));
   });
 
 program
@@ -268,6 +285,7 @@ program
   .option('--compare <modes>', 'Compare extraction modes, currently deterministic,hybrid')
   .option('--debug-extractor', 'Print debug stats for extraction mode')
   .option('--show-informational', 'List testable: false rules')
+  .option('--show-scenarios', 'Preview generated test scenarios for each rule')
   .option('--no-cache', 'Disable AI extraction cache')
   .option('--provider-timeout-ms <ms>', 'Override the default provider extraction timeout')
   .action(async (dir, options) => {
@@ -293,6 +311,24 @@ program
 
     const allRules = await routeExtraction(files, config);
     const rules = options.showInformational ? allRules : allRules.filter(r => r.testable);
+
+    if (options.showScenarios) {
+      for (const rule of rules) {
+        const scenarios = generateScenarios([rule]);
+        const truncated = rule.text.length > 60 ? rule.text.substring(0, 57) + '...' : rule.text;
+        console.log(chalk.bold(`\n[${rule.severity.toUpperCase()}/${rule.category}] ${truncated}`));
+        if (scenarios.length === 0) {
+          console.log(chalk.gray('  (no scenarios generated)'));
+        } else {
+          for (const scenario of scenarios) {
+            console.log(chalk.cyan(`  Scenario: ${scenario.title}`));
+            console.log(chalk.gray(`  Prompt:   ${scenario.prompt.length > 120 ? scenario.prompt.substring(0, 117) + '...' : scenario.prompt}`));
+          }
+        }
+      }
+      console.log(`\n${rules.length} rule(s) total`);
+      return;
+    }
 
     console.table(rules.map(r => ({
       Source: path.basename(r.sourceFile),
@@ -537,12 +573,6 @@ async function executeRun(
     const sandboxDir = await createSandbox(scenario);
     const rawProviderResult = await provider.run({ scenario, sandboxDir });
     const providerResult = normalizeProviderResult(rawProviderResult);
-    try {
-      const baseline = await getChangedFileContentsAtHead(sandboxDir, providerResult.changedFiles);
-      (providerResult as any).baselineFileContents = baseline;
-    } catch {
-      // baseline capture is best-effort
-    }
     const evalResult = await evaluateResult(scenario, providerResult);
     results.push(evalResult);
 
@@ -570,7 +600,20 @@ async function executeRun(
     : 0;
   const finalScore = isNaN(overallScore) ? 0 : overallScore;
 
-  console.log(`Overall score: ${finalScore}/100\n`);
+  const skippedCount = results.filter(r => r.status === 'SKIPPED').length;
+  const evaluatedCount = results.length - skippedCount;
+  const coveragePct = results.length > 0 ? Math.round((evaluatedCount / results.length) * 100) : 0;
+  console.log(`Overall score: ${finalScore}/100`);
+  console.log(`Rule coverage: ${evaluatedCount}/${results.length} evaluated (${coveragePct}%)  Skipped: ${skippedCount}\n`);
+
+  const skippedCodePatternCount = results.filter(r =>
+    r.status === 'SKIPPED' &&
+    (r.category === 'code_pattern_forbidden' || r.category === 'code_pattern_required')
+  ).length;
+  if (skippedCodePatternCount > 0) {
+    console.log(chalk.yellow(`Tip: ${skippedCodePatternCount} code pattern rule(s) were skipped (no file content available).`));
+    console.log(chalk.yellow(`     Re-run with --provider claude-code or --provider openrouter to evaluate them.\n`));
+  }
 
   if (opts.writeReports) {
     let delta: BaselineDelta | undefined;
