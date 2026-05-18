@@ -213,49 +213,18 @@ function buildShareBlock(
 export function getChangedSnippets(result: EvaluationResult, limit = 3): ChangedSnippet[] {
   const snippets: ChangedSnippet[] = [];
   const entries = Object.entries(result.providerResult.changedFileContents || {});
-  const baseline = (result.providerResult as any).baselineFileContents as Record<string, string | null> | undefined;
-
   for (const [file, content] of entries) {
     if (snippets.length >= limit) break;
     if (typeof content !== 'string') continue;
     snippets.push({
       file,
-      snippet: baseline ? diffSnippet(baseline[file] ?? null, content) : compactSnippet(content)
+      snippet: compactSnippet(content)
     });
   }
 
   return snippets;
 }
 
-function diffSnippet(beforeContent: string | null, afterContent: string): string {
-  const beforeSet = new Set(
-    typeof beforeContent === 'string'
-      ? beforeContent.replace(/\r\n/g, '\n').split('\n')
-      : []
-  );
-  const afterLines = afterContent.replace(/\r\n/g, '\n').split('\n');
-  const lines: string[] = [];
-  for (const line of afterLines) {
-    if (lines.length >= 12) {
-      lines.push('... (snippet truncated)');
-      break;
-    }
-    lines.push((beforeSet.has(line) ? '  ' : '+ ') + line.trimEnd());
-  }
-  if (typeof beforeContent === 'string') {
-    const afterSet = new Set(afterLines);
-    let shownRemoved = 0;
-    for (const line of beforeContent.replace(/\r\n/g, '\n').split('\n')) {
-      if (shownRemoved >= 4) break;
-      if (line && !afterSet.has(line)) {
-        lines.push(`- ${line.trimEnd()}`);
-        shownRemoved++;
-      }
-    }
-  }
-  const joined = lines.join('\n');
-  return joined.length > 700 ? `${joined.slice(0, 697)}...` : joined;
-}
 
 export function formatSource(sourceFile?: string, sourceLine?: number): string {
   if (!sourceFile) return 'Unknown';

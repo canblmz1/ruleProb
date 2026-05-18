@@ -1,3 +1,4 @@
+import fs from 'fs-extra';
 import { Rule, CandidateRule, Config } from '../types/index.js';
 import { validateCandidate } from './validateCandidate.js';
 import { getEnv } from '../config/env.js';
@@ -383,9 +384,8 @@ function cleanJson(str: string): string {
 
 async function saveRawExtractorResponse(targetFile: string, raw: string): Promise<void> {
   try {
-    const fs = await import('fs');
-    fs.mkdirSync('.ruleprobe', { recursive: true });
-    fs.writeFileSync(targetFile, sanitizeProviderText(raw), 'utf8');
+    await fs.ensureDir('.ruleprobe');
+    await fs.writeFile(targetFile, sanitizeProviderText(raw), 'utf8');
   } catch (err) {
     console.warn(`Failed to persist raw AI extractor response: ${String(err)}`);
   }

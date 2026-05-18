@@ -24,7 +24,7 @@ function safeJsonForScript(value: unknown): string {
  * Inline source has </script> sequences escaped to prevent HTML parser early close.
  */
 async function getChartJsScript(): Promise<string> {
-  const CDN_FALLBACK = `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>`;
+  const CDN_FALLBACK = `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>`;
   try {
     // Use createRequire to locate the package, then read the file directly.
     // chart.js package.json "exports" does not expose the dist/ path via subpath

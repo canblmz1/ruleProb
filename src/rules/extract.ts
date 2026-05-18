@@ -231,7 +231,7 @@ function extractFileChangeRules(line: string, sourceFile: string, lineNumber: nu
   if (lower.includes('package.json') && forbidsFileChange) {
     rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'forbidden_file_change', 'high', [{ type: 'forbidden_file_change', pattern: explicitPattern || 'package.json' }]));
   }
-  if (forbidsFileChange && explicitPattern) {
+  if (forbidsFileChange && explicitPattern && !lower.includes('package.json')) {
     rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'forbidden_file_change', 'high', [{ type: 'forbidden_file_change', pattern: explicitPattern }]));
   } else if (lower.includes('generated') && forbidsFileChange) {
     rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'forbidden_file_change', 'high', [{ type: 'forbidden_file_change', pattern: 'generated' }]));

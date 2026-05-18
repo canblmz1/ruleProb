@@ -12,7 +12,7 @@ import { runAnalyze } from '../analyze/runAnalyze.js';
 import { compareDeterministicToHybrid, formatRuleComparison } from '../compare/extraction.js';
 import { compareWithBaseRef, formatBaseRefComparison } from '../compare/baseRef.js';
 import { generateScenarios } from '../scenarios/generate.js';
-import { createSandbox, cleanupSandbox, getChangedFileContentsAtHead } from '../sandbox/create.js';
+import { createSandbox, cleanupSandbox } from '../sandbox/create.js';
 import { MockProvider } from '../providers/mock.js';
 import { DryRunProvider } from '../providers/dryRun.js';
 import { OpenRouterProvider } from '../providers/openrouter.js';
@@ -537,12 +537,6 @@ async function executeRun(
     const sandboxDir = await createSandbox(scenario);
     const rawProviderResult = await provider.run({ scenario, sandboxDir });
     const providerResult = normalizeProviderResult(rawProviderResult);
-    try {
-      const baseline = await getChangedFileContentsAtHead(sandboxDir, providerResult.changedFiles);
-      (providerResult as any).baselineFileContents = baseline;
-    } catch {
-      // baseline capture is best-effort
-    }
     const evalResult = await evaluateResult(scenario, providerResult);
     results.push(evalResult);
 
