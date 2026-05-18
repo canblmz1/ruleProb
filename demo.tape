@@ -1,8 +1,8 @@
 Output demo.gif
 
 Set FontSize 13
-Set Columns 120
-Set Rows 36
+Set Width 1200
+Set Height 600
 Set Theme "Dark+"
 Set PlaybackSpeed 1.2
 Set TypingSpeed 35ms
