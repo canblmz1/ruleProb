@@ -570,6 +570,15 @@ async function executeRun(
   console.log(`Overall score: ${finalScore}/100`);
   console.log(`Rule coverage: ${evaluatedCount}/${results.length} evaluated (${coveragePct}%)  Skipped: ${skippedCount}\n`);
 
+  const skippedCodePatternCount = results.filter(r =>
+    r.status === 'SKIPPED' &&
+    (r.category === 'code_pattern_forbidden' || r.category === 'code_pattern_required')
+  ).length;
+  if (skippedCodePatternCount > 0) {
+    console.log(chalk.yellow(`Tip: ${skippedCodePatternCount} code pattern rule(s) were skipped (no file content available).`));
+    console.log(chalk.yellow(`     Re-run with --provider claude-code or --provider openrouter to evaluate them.\n`));
+  }
+
   if (opts.writeReports) {
     let delta: BaselineDelta | undefined;
     if (config.baseline) {

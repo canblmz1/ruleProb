@@ -52,6 +52,21 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
 
   lines.push(...formatCoverage(proof.coverage), '');
 
+  const skippedCodePatterns = results.filter(r =>
+    r.status === 'SKIPPED' &&
+    (r.category === 'code_pattern_forbidden' || r.category === 'code_pattern_required')
+  );
+  if (skippedCodePatterns.length > 0) {
+    lines.push('## Skipped Guidance');
+    lines.push(`${skippedCodePatterns.length} code pattern rule(s) were skipped because no changed file contents were available.`);
+    lines.push('To evaluate these rules, re-run with a code-editing provider:');
+    lines.push('```');
+    lines.push('ruleprobe run <dir> --provider claude-code');
+    lines.push('ruleprobe run <dir> --provider openrouter');
+    lines.push('```');
+    lines.push('');
+  }
+
   lines.push(
     `Severity weights: high=${proof.scoreBreakdown.weights.high}, medium=${proof.scoreBreakdown.weights.medium}, low=${proof.scoreBreakdown.weights.low}`,
     '',

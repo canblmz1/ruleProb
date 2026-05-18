@@ -183,7 +183,7 @@ function evaluateAssertion(assertion: Assertion, providerResult: ProviderResult)
         assertion,
         passed: true,
         skipped: true,
-        evidence: `No changed file contents available; cannot prove absence of forbidden pattern '${assertion.pattern}' from provider prose alone.`
+        evidence: `No changed file contents available; cannot prove absence of forbidden pattern '${assertion.pattern}' from provider prose alone. Re-run with a code-editing provider (--provider claude-code or --provider openrouter) to evaluate this rule.`
       };
     }
     const matches = findPatternMatches(providerResult, assertion.pattern);
@@ -205,7 +205,7 @@ function evaluateAssertion(assertion: Assertion, providerResult: ProviderResult)
         assertion,
         passed: false,
         skipped: true,
-        evidence: `No changed file contents available; cannot prove presence of required pattern '${assertion.pattern}' from provider prose alone.`
+        evidence: `No changed file contents available; cannot prove presence of required pattern '${assertion.pattern}' from provider prose alone. Re-run with a code-editing provider (--provider claude-code or --provider openrouter) to evaluate this rule.`
       };
     }
     const matches = findPatternMatches(providerResult, assertion.pattern);
