@@ -285,6 +285,7 @@ program
   .option('--compare <modes>', 'Compare extraction modes, currently deterministic,hybrid')
   .option('--debug-extractor', 'Print debug stats for extraction mode')
   .option('--show-informational', 'List testable: false rules')
+  .option('--show-scenarios', 'Preview generated test scenarios for each rule')
   .option('--no-cache', 'Disable AI extraction cache')
   .option('--provider-timeout-ms <ms>', 'Override the default provider extraction timeout')
   .action(async (dir, options) => {
@@ -310,6 +311,24 @@ program
 
     const allRules = await routeExtraction(files, config);
     const rules = options.showInformational ? allRules : allRules.filter(r => r.testable);
+
+    if (options.showScenarios) {
+      for (const rule of rules) {
+        const scenarios = generateScenarios([rule]);
+        const truncated = rule.text.length > 60 ? rule.text.substring(0, 57) + '...' : rule.text;
+        console.log(chalk.bold(`\n[${rule.severity.toUpperCase()}/${rule.category}] ${truncated}`));
+        if (scenarios.length === 0) {
+          console.log(chalk.gray('  (no scenarios generated)'));
+        } else {
+          for (const scenario of scenarios) {
+            console.log(chalk.cyan(`  Scenario: ${scenario.title}`));
+            console.log(chalk.gray(`  Prompt:   ${scenario.prompt.length > 120 ? scenario.prompt.substring(0, 117) + '...' : scenario.prompt}`));
+          }
+        }
+      }
+      console.log(`\n${rules.length} rule(s) total`);
+      return;
+    }
 
     console.table(rules.map(r => ({
       Source: path.basename(r.sourceFile),
