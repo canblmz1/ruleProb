@@ -4,6 +4,8 @@
 
 [![Node >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![npm](https://img.shields.io/npm/v/ruleprobe-ai)](https://www.npmjs.com/package/ruleprobe-ai)
 
+![RuleProbe Demo](demo.gif)
+
 RuleProbe is a CLI that turns AI instruction files (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules`, Copilot instructions) into executable compliance tests. It extracts rules, generates disposable sandbox scenarios, runs an AI provider against each one, and produces a scored JSON/Markdown/HTML report.
 
 ---

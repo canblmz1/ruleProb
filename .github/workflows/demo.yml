@@ -1,0 +1,48 @@
+name: Generate Demo GIF
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'demo.tape'
+      - 'examples/basic/**'
+
+permissions:
+  contents: write
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Install ruleprobe globally from dist
+        run: npm install -g .
+
+      - name: Generate demo GIF with VHS
+        uses: charmbracelet/vhs-action@v2
+        with:
+          path: demo.tape
+          install-fonts: true
+
+      - name: Commit demo GIF
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: update demo GIF [skip ci]"
+          file_pattern: "demo.gif"
