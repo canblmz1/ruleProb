@@ -46,10 +46,18 @@ export interface ProofFriendlyShareBlock {
   markdown: string;
 }
 
+export interface CoverageModel {
+  totalScenarios: number;
+  evaluated: number;
+  skipped: number;
+  effectivePct: number;
+}
+
 export interface ReportProofModel {
   finalScore: number;
   weightedScore: number;
   scoreBreakdown: ScoreBreakdown;
+  coverage: CoverageModel;
   knownLimitations: LimitationNote[];
   failureGroups: FailureGroup[];
   crossTab: CrossTab;
@@ -57,6 +65,14 @@ export interface ReportProofModel {
 }
 
 const SEVERITY_WEIGHTS: Record<string, number> = { high: 3, medium: 2, low: 1 };
+
+export function buildCoverageModel(results: EvaluationResult[]): CoverageModel {
+  const totalScenarios = results.length;
+  const skipped = results.filter(r => r.status === 'SKIPPED').length;
+  const evaluated = totalScenarios - skipped;
+  const effectivePct = totalScenarios > 0 ? Math.round((evaluated / totalScenarios) * 100) : 0;
+  return { totalScenarios, evaluated, skipped, effectivePct };
+}
 
 export function buildReportProofModel(results: EvaluationResult[], config: Config): ReportProofModel {
   const scorable = results.filter(r => r.status !== 'SKIPPED');
@@ -66,6 +82,7 @@ export function buildReportProofModel(results: EvaluationResult[], config: Confi
   const finalScore = isNaN(overallScore) ? 0 : overallScore;
 
   const scoreBreakdown = computeWeightedScore(results);
+  const coverage = buildCoverageModel(results);
   const failureGroups = groupFailures(results);
   const crossTab = buildCrossTab(results);
   const knownLimitations = collectLimitationNotes(results, config);
@@ -75,6 +92,7 @@ export function buildReportProofModel(results: EvaluationResult[], config: Confi
     finalScore,
     weightedScore: scoreBreakdown.weighted,
     scoreBreakdown,
+    coverage,
     knownLimitations,
     failureGroups,
     crossTab,

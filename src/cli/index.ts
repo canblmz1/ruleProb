@@ -564,7 +564,11 @@ async function executeRun(
     : 0;
   const finalScore = isNaN(overallScore) ? 0 : overallScore;
 
-  console.log(`Overall score: ${finalScore}/100\n`);
+  const skippedCount = results.filter(r => r.status === 'SKIPPED').length;
+  const evaluatedCount = results.length - skippedCount;
+  const coveragePct = results.length > 0 ? Math.round((evaluatedCount / results.length) * 100) : 0;
+  console.log(`Overall score: ${finalScore}/100`);
+  console.log(`Rule coverage: ${evaluatedCount}/${results.length} evaluated (${coveragePct}%)  Skipped: ${skippedCount}\n`);
 
   if (opts.writeReports) {
     let delta: BaselineDelta | undefined;
