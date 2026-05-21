@@ -29,7 +29,7 @@ import { writeJUnitReport } from '../reporters/junit.js';
 import { writePrCommentReport } from '../reporters/prComment.js';
 import { lintRules, formatLintOutput } from '../lint/analyze.js';
 import { analyzeTokens, formatTokenReport } from '../tokens/analyze.js';
-import { listPacks, getPack } from '../packs/registry.js';
+import { listPacks, getPack, searchPacks, fetchRemotePack } from '../packs/registry.js';
 import { runDoctor } from './doctor.js';
 import { clearExtractionCache } from '../extractors/cache.js';
 import { EvaluationResult, Provider, Config } from '../types/index.js';
@@ -175,14 +175,21 @@ program
 program
   .command('packs')
   .description('List available built-in rule packs')
-  .action(() => {
-    const packs = listPacks();
-    console.log(chalk.bold('\nAvailable rule packs:\n'));
+  .option('--search <tag>', 'Filter packs by tag or keyword')
+  .action((options) => {
+    const packs = options.search ? searchPacks(options.search) : listPacks();
+    if (packs.length === 0) {
+      console.log(chalk.yellow(`No packs found matching "${options.search}".`));
+      return;
+    }
+    const header = options.search ? `\nPacks matching "${options.search}":\n` : '\nAvailable rule packs:\n';
+    console.log(chalk.bold(header));
     for (const pack of packs) {
       console.log(`  ${chalk.cyan(pack.name.padEnd(20))} ${pack.description}`);
       console.log(`  ${chalk.gray('tags: ' + pack.tags.join(', '))}\n`);
     }
     console.log(`Run ${chalk.cyan('ruleprobe add <pack-name>')} to add rules to your CLAUDE.md`);
+    console.log(`Run ${chalk.cyan('ruleprobe add-url <https://...>')} to load a community pack from a URL`);
   });
 
 program
@@ -208,6 +215,42 @@ program
     const target = options.file;
     const exists = await fs.pathExists(target);
     const header = `\n## ${pack.name} rules (added by ruleprobe add)\n`;
+    const block = header + preview + '\n';
+
+    if (exists) {
+      await fs.appendFile(target, block, 'utf-8');
+    } else {
+      await fs.writeFile(target, block.trimStart(), 'utf-8');
+    }
+
+    console.log(chalk.green(`✓ Added ${pack.rules.length} rule(s) from "${pack.name}" to ${target}`));
+    console.log(chalk.gray(`  Run "ruleprobe list-rules ." to verify extraction.`));
+  });
+
+program
+  .command('add-url <url>')
+  .description('Add a community rule pack from a remote HTTPS URL (JSON or plain-text lines)')
+  .option('--file <path>', 'Target instruction file', 'CLAUDE.md')
+  .option('--dry-run', 'Preview rules without writing')
+  .action(async (url: string, options) => {
+    let pack;
+    try {
+      pack = await fetchRemotePack(url);
+    } catch (err: unknown) {
+      console.error(chalk.red(`Failed to load remote pack: ${err instanceof Error ? err.message : String(err)}`));
+      process.exit(1);
+    }
+
+    const preview = pack.rules.join('\n');
+    if (options.dryRun) {
+      console.log(chalk.bold(`\nPreview — ${pack.name} (${pack.rules.length} rules):\n`));
+      console.log(preview);
+      return;
+    }
+
+    const target = options.file;
+    const exists = await fs.pathExists(target);
+    const header = `\n## ${pack.name} rules (added by ruleprobe add-url)\n`;
     const block = header + preview + '\n';
 
     if (exists) {
