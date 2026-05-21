@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.6.0 - FAZ 4: Ecosystem & Network Effects
+
+v0.6.0 delivers four FAZ 4 ecosystem features.
+
+- **Community packs** (`packs --search <tag>`, `add-url <https://...>`): Filter built-in packs by tag/keyword. Load a community rule pack from any HTTPS URL — supports JSON (RulePack schema) or plain-text `- ...` lines. Security: https:// only.
+- **OSS Leaderboard** (`ruleprobe leaderboard`): Scores all corpus fixture files with the deterministic extractor and shows extraction quality as a ranked table. Outputs `docs/leaderboard.md`. `--json` flag for CI pipelines.
+- **Shields.io badge endpoint** (`.ruleprobe/badge.json`): Auto-generated on every `run` and `badge` command. Standard [shields.io endpoint](https://shields.io/endpoint) format — host it publicly and use `https://img.shields.io/endpoint?url=...` for a live dynamic README badge.
+- **Slack & Teams notifications** (`.github/workflows/ruleprobe-notify.example.yml`): Copy-paste GitHub Actions workflow that sends a rich Slack or Teams message when compliance drops below threshold. Weekly cron option included.
+
 ## v0.5.0 - FAZ 3: GitHub Action, Pre-commit Hooks, VS Code Integration, Comparison Reports
 
 v0.5.0 delivers four major FAZ 3 improvements.
