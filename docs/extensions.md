@@ -1,5 +1,44 @@
 # Extension Points
 
+## VS Code Integration
+
+RuleProbe writes a SARIF report at `.ruleprobe/report.sarif` after every `run`. The **SARIF Viewer** extension reads this file and shows compliance failures as inline warnings directly in your instruction files.
+
+### Setup
+
+1. Install the SARIF Viewer extension (recommended via `.vscode/extensions.json`):
+   ```
+   MS-SarifVSCode.sarif-viewer
+   ```
+
+2. Run RuleProbe (VS Code task or terminal):
+   ```bash
+   # Via VS Code task (Ctrl+Shift+P → Run Task → RuleProbe: Run with SARIF)
+   # Or directly:
+   npx ruleprobe-ai run . --provider mock
+   ```
+
+3. Open the SARIF file in VS Code:
+   - Command Palette → **SARIF: Open SARIF file** → select `.ruleprobe/report.sarif`
+   - Or click the `.ruleprobe/report.sarif` file in Explorer
+
+Failures appear as yellow squiggles on the relevant line in your `CLAUDE.md` / `AGENTS.md`.
+
+### Built-in VS Code Tasks
+
+The `.vscode/tasks.json` in this repo provides ready-to-use tasks:
+
+| Task | Description |
+|---|---|
+| `RuleProbe: Run (mock)` | Full run, no API key needed |
+| `RuleProbe: Run with SARIF (mock)` | Run + confirms SARIF path |
+| `RuleProbe: List Rules` | List extracted rules with `--explain` |
+| `RuleProbe: Demo (no API key)` | Run with `--demo` flag |
+
+Run with: **Ctrl+Shift+P** → **Tasks: Run Task**
+
+---
+
 RuleProbe's extension surface is intentionally small. Additions should strengthen repository instruction testing without turning the project into a generic eval platform.
 
 ## Provider Contract
