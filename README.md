@@ -2,7 +2,7 @@
 
 > **AI coding rules are documentation until you test them.**
 
-[![Node >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![npm](https://img.shields.io/npm/v/ruleprobe-ai)](https://www.npmjs.com/package/ruleprobe-ai)
+[![Node >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![npm](https://img.shields.io/npm/v/ruleprobe-ai)](https://www.npmjs.com/package/ruleprobe-ai) [![RuleProbe](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/canblmz1/ruleProb/main/.ruleprobe/badge.json)](https://github.com/canblmz1/ruleProb)
 
 ![RuleProbe Demo](docs/demo.svg)
 
