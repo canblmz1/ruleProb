@@ -1,22 +1,22 @@
-Output demo.gif
+Output docs/demo.gif
 
-Set FontSize 22
-Set Width 1400
-Set Height 800
-Set Theme "Dark+"
-Set PlaybackSpeed 1.0
-Set TypingSpeed 50ms
+Set FontSize 18
+Set Width 120
+Set Height 38
+Set Theme "Dracula"
+Set PlaybackSpeed 0.8
+Set TypingSpeed 60ms
 Set CursorBlink false
-Set Padding 24
+Set Padding 16
 
-# Show rule extraction
+# --- RuleProbe demo: extract rules, then run with --demo flag ---
+
 Type "ruleprobe list-rules examples/strict"
 Enter
-Sleep 5s
+Sleep 4s
 
-# Show compliance run
-Type "ruleprobe run examples/strict --provider mock --fail-below 0"
+Type "ruleprobe run examples/strict --demo --fail-below 0"
 Enter
-Sleep 8s
+Sleep 12s
 
 Sleep 2s
