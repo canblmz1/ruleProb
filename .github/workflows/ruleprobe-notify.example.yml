@@ -11,11 +11,7 @@
 name: RuleProbe Compliance + Notify
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-  schedule:
-    - cron: '0 9 * * 1'   # Monday 09:00 UTC — weekly compliance check
+  workflow_dispatch:  # Run manually only — copy this file to use in your own repo
 
 jobs:
   compliance:
