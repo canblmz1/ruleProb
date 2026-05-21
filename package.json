@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/canblmz1/ruleProb.git"
+    "url": "git+https://github.com/canblmz1/ruleProb.git"
   },
   "homepage": "https://github.com/canblmz1/ruleProb#readme",
   "bugs": {
@@ -56,7 +56,7 @@
     }
   },
   "bin": {
-    "ruleprobe": "./dist/cli/index.js"
+    "ruleprobe": "dist/cli/index.js"
   },
   "scripts": {
     "build": "tsup",
