@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.4.0 - Demo Mode & New Examples
+
+v0.4.0 ships the `--demo` flag, two new example projects, and an animated terminal demo.
+
+- **`--demo` flag**: `ruleprobe run <dir> --demo` forces the mock provider with a realistic PASS/FAIL mix (~30% failures) and shows a DEMO MODE banner. No API key needed. Ideal for first-time users and README demos.
+- **`examples/cursor-only/`**: New example project using only `.cursor/rules/main.mdc` (8 testable rules). Shows RuleProbe working with Cursor rule files with no CLAUDE.md.
+- **`examples/agents-md/`**: New example project using only `AGENTS.md` (10 testable rules). For OpenAI Codex / GitHub Copilot Workspace users.
+- **Animated SVG demo**: `docs/demo.svg` — regenerate any time with `node scripts/make-demo-cast.mjs` (requires `pnpm build`).
+- **`scripts/make-demo-cast.mjs`**: Script that runs real CLI commands and produces `docs/demo.cast` + `docs/demo.svg` via svg-term-cli.
+
 ## v0.3.1 - Workflow Improvements
 
 v0.3.1 ships targeted improvements to coverage visibility, skipped-result guidance, CI integration, and the developer workflow:
