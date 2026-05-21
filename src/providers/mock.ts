@@ -10,8 +10,16 @@ import { getChangedFileContents, getChangedFiles } from '../sandbox/create.js';
 //
 // Selection is deterministic by scenario.id hash so the same scenarios always
 // produce the same outcomes (no flaky CI).
+//
+// demoMode: widens the failure band to ~40% so demo runs look more dramatic
+// and representative of real-world agent behaviour.
 export class MockProvider {
   name = 'mock';
+  private demoMode: boolean;
+
+  constructor(options: { demoMode?: boolean } = {}) {
+    this.demoMode = options.demoMode ?? false;
+  }
 
   async run(input: ProviderInput): Promise<ProviderResult> {
     const { scenario, sandboxDir } = input;
@@ -28,12 +36,18 @@ export class MockProvider {
       success: true
     };
 
-    // Deterministic outcome map:
+    // Deterministic outcome map (normal mode):
     //   bucket 0..7 => "compliant" behavior  (PASS, ~80%)
     //   bucket 8    => "non-compliant"        (FAIL, ~10%)
     //   bucket 9    => "ambiguous / no-op"    (often SKIPPED or FAIL, ~10%)
-    const compliant = bucket <= 7;
-    const nonCompliant = bucket === 8;
+    //
+    // Demo mode widens the failure band for a more realistic demo experience:
+    //   bucket 0..5 => "compliant"            (PASS, ~60%)
+    //   bucket 6..8 => "non-compliant"        (FAIL, ~30%)
+    //   bucket 9    => "ambiguous / no-op"    (SKIPPED/FAIL, ~10%)
+    const compliantThreshold = this.demoMode ? 5 : 7;
+    const compliant = bucket <= compliantThreshold;
+    const nonCompliant = this.demoMode ? (bucket >= 6 && bucket <= 8) : bucket === 8;
 
     if (category === 'package_manager_required') {
       const manager = (scenario.expectedAssertions[0] as any).manager || 'pnpm';
