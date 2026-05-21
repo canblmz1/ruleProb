@@ -288,6 +288,7 @@ program
   .option('--debug-extractor', 'Print debug stats for extraction mode')
   .option('--show-informational', 'List testable: false rules')
   .option('--show-scenarios', 'Preview generated test scenarios for each rule')
+  .option('--explain', 'Show extraction detail: assertions, source line, and severity for each rule')
   .option('--no-cache', 'Disable AI extraction cache')
   .option('--provider-timeout-ms <ms>', 'Override the default provider extraction timeout')
   .action(async (dir, options) => {
@@ -329,6 +330,27 @@ program
         }
       }
       console.log(`\n${rules.length} rule(s) total`);
+      return;
+    }
+
+    if (options.explain) {
+      for (const rule of rules) {
+        const badge = `[${rule.severity.toUpperCase()}/${rule.category}]`;
+        console.log(chalk.bold(`\n${badge}`));
+        console.log(chalk.white(`  Rule:    ${rule.text}`));
+        console.log(chalk.gray(`  Source:  ${path.basename(rule.sourceFile)}:${rule.lineNumber ?? '?'}`));
+        if (rule.assertions.length > 0) {
+          console.log(chalk.cyan(`  Checks:`));
+          for (const a of rule.assertions) {
+            const detail = Object.entries(a)
+              .filter(([k]) => k !== 'type')
+              .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+              .join(', ');
+            console.log(chalk.gray(`    ${a.type}${detail ? ' — ' + detail : ''}`));
+          }
+        }
+      }
+      console.log(`\n${rules.length} testable rule(s) shown with extraction detail`);
       return;
     }
 

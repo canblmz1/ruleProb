@@ -198,6 +198,20 @@ function extractCodePatternRules(line: string, sourceFile: string, lineNumber: n
   if (lower.includes('default export') && (lower.includes('forbidden') || lower.includes('never'))) {
     rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'code_pattern_forbidden', 'medium', [{ type: 'code_pattern_forbidden', pattern: 'export default' }]));
   }
+  // console.log / console.error forbidden
+  if (
+    (lowerPlain.includes('console.log') || lowerPlain.includes('console.error') || lowerPlain.includes('console.warn')) &&
+    (lower.includes('never') || lower.includes('avoid') || lower.includes('do not') || lower.includes("don't") || lower.includes('no console'))
+  ) {
+    rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'code_pattern_forbidden', 'medium', [{ type: 'code_pattern_forbidden', pattern: 'console.log' }]));
+  }
+  // process.exit forbidden
+  if (
+    lowerPlain.includes('process.exit') &&
+    (lower.includes('never') || lower.includes('avoid') || lower.includes('do not') || lower.includes("don't"))
+  ) {
+    rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'code_pattern_forbidden', 'medium', [{ type: 'code_pattern_forbidden', pattern: 'process.exit' }]));
+  }
 
   // Positive (required) code patterns paired with common "use X instead" phrasing.
   if (lowerPlain.includes('use unknown')) {
@@ -208,6 +222,20 @@ function extractCodePatternRules(line: string, sourceFile: string, lineNumber: n
   }
   if (lower.includes('use plain objects')) {
     rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'code_pattern_required', 'medium', [{ type: 'code_pattern_required', pattern: 'plain objects' }]));
+  }
+  // import type required
+  if (
+    lowerPlain.includes('import type') &&
+    (lower.includes('use') || lower.includes('prefer') || lower.includes('always') || lower.includes('required'))
+  ) {
+    rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'code_pattern_required', 'medium', [{ type: 'code_pattern_required', pattern: 'import type' }]));
+  }
+  // node: protocol required
+  if (
+    (lower.includes('node: prefix') || lower.includes('node: protocol') || lower.includes('use node:') || lower.includes('prefer node:')) &&
+    (lower.includes('use') || lower.includes('prefer') || lower.includes('always'))
+  ) {
+    rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'code_pattern_required', 'medium', [{ type: 'code_pattern_required', pattern: 'node:' }]));
   }
 
   return rules;
