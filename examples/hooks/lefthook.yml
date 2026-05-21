@@ -1,0 +1,13 @@
+# lefthook.yml — RuleProbe pre-commit integration
+#
+# Install lefthook: npm i -g lefthook
+# Then: lefthook install
+#
+# RuleProbe runs extraction + dry-run before every commit.
+# Set fail-below to your target threshold (0 = never block, 70 = block if below 70).
+
+pre-commit:
+  commands:
+    ruleprobe:
+      run: npx ruleprobe-ai run . --provider dry-run --extractor deterministic --fail-below 0
+      stage_fixed: false
