@@ -27,6 +27,9 @@ const ALLOWED_CATEGORIES = [
 ];
 
 export function validateCandidate(rule: CandidateRule): ValidationResponse {
+  if (!rule || typeof rule !== 'object') {
+    return { valid: false, reason: 'rule must be a non-null object' };
+  }
   if (!rule.category || !ALLOWED_CATEGORIES.includes(rule.category)) {
     return { valid: false, reason: `Invalid category: ${rule.category}` };
   }
