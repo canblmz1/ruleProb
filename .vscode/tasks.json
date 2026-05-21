@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "RuleProbe: Run (mock)",
+      "type": "shell",
+      "command": "npx ruleprobe-ai run . --provider mock --fail-below 0",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "owner": "ruleprobe",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^FAIL\\s+(.+)$",
+          "message": 1
+        }
+      }
+    },
+    {
+      "label": "RuleProbe: Run with SARIF (mock)",
+      "type": "shell",
+      "command": "npx ruleprobe-ai run . --provider mock --fail-below 0 && echo SARIF written to .ruleprobe/report.sarif",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "RuleProbe: List Rules",
+      "type": "shell",
+      "command": "npx ruleprobe-ai list-rules . --explain",
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "RuleProbe: Demo (no API key)",
+      "type": "shell",
+      "command": "npx ruleprobe-ai run . --demo",
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}
