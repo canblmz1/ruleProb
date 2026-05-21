@@ -441,8 +441,19 @@ program
   .option('--badge', 'Generate SVG score and trend badges')
   .option('--baseline', 'Save or compare against a baseline run')
   .option('--fail-on-regression', 'Exit with code 1 if any scenario regressed vs baseline')
+  .option('--demo', 'Demo mode: use mock provider with realistic PASS/FAIL mix, no API key needed')
   .action(async (dir, options) => {
     const runId = Date.now();
+
+    if (options.demo) {
+      console.log(chalk.bold.cyan('\n  ╔══════════════════════════════════════╗'));
+      console.log(chalk.bold.cyan('  ║        RULEPROBE DEMO MODE           ║'));
+      console.log(chalk.bold.cyan('  ║  No API key needed · mock provider   ║'));
+      console.log(chalk.bold.cyan('  ╚══════════════════════════════════════╝\n'));
+      // Force mock provider and inject demoMode flag for wider failure band
+      options.provider = 'mock';
+      options._demoMode = true;
+    }
 
     if (dir) process.chdir(dir);
     const baseConfig = await loadConfig(options.config);
@@ -479,7 +490,7 @@ program
         await writeComparisonReport(allResults, baseConfig, runId);
         return;
       }
-      await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge });
+      await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode });
     }
 
     await doRun();
@@ -527,7 +538,7 @@ program.parse(process.argv);
 async function executeRun(
   config: Config,
   providerName: string,
-  opts: { writeReports?: boolean; generateBadge?: boolean } = {}
+  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean } = {}
 ): Promise<EvaluationResult[]> {
   console.log(chalk.blue('RuleProbe Runner Started'));
   const files = await discoverInstructions(config);
@@ -562,7 +573,7 @@ async function executeRun(
   } else if (providerName === 'opencode-go') {
      provider = new OpenCodeGoProvider(config);
   } else if (providerName === 'mock') {
-     provider = new MockProvider();
+     provider = new MockProvider({ demoMode: opts.demoMode });
   } else {
      const KNOWN_PROVIDERS = ['mock', 'dry-run', 'gemini', 'openrouter', 'claude-code', 'opencode-go'];
      console.error(chalk.red(`Unknown provider: "${providerName}". Valid providers: ${KNOWN_PROVIDERS.join(', ')}`));
