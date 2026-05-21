@@ -260,16 +260,28 @@ Use them in your README:
 
 ## CI integration
 
-Copy the example GitHub Actions workflow:
+### Official GitHub Action (zero-config)
 
-```bash
-cp .github/workflows/ruleprobe-compliance.example.yml \
-   .github/workflows/ruleprobe-compliance.yml
+```yaml
+- uses: canblmz1/ruleProb@v0.4.0
+  with:
+    provider: mock      # no API key needed
+    fail-below: '70'    # block PR if score drops below 70
 ```
 
-The workflow automatically publishes the compliance report to the GitHub Actions **Step Summary**, so results appear inline in the job view without opening an artifact.
+With Gemini for real evaluation:
 
-Full walkthrough: [docs/github-actions.md](docs/github-actions.md)
+```yaml
+- uses: canblmz1/ruleProb@v0.4.0
+  with:
+    provider: gemini
+    extractor: hybrid
+    fail-below: '70'
+  env:
+    GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+```
+
+Full reference: [docs/github-actions.md](docs/github-actions.md)
 
 ---
 
