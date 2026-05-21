@@ -12,11 +12,11 @@ inputs:
     required: false
     default: '.'
   provider:
-    description: AI provider to run scenarios against. Options: mock, dry-run, gemini, openrouter, claude-code
+    description: 'AI provider to run scenarios against (mock, dry-run, gemini, openrouter, claude-code)'
     required: false
     default: mock
   extractor:
-    description: Rule extraction mode. Options: deterministic, ai-assisted, hybrid
+    description: 'Rule extraction mode (deterministic, ai-assisted, hybrid)'
     required: false
     default: deterministic
   fail-below:
