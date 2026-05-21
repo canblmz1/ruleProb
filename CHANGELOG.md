@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.5.0 - FAZ 3: GitHub Action, Pre-commit Hooks, VS Code Integration, Comparison Reports
+
+v0.5.0 delivers four major FAZ 3 improvements.
+
+- **GitHub Action** (`action.yml`): Official composite action for the GitHub Actions Marketplace. `uses: canblmz1/ruleProb@v0.5.0` — inputs: `dir`, `provider`, `extractor`, `fail-below`, `model`, `version`, `args`. Outputs: `score`, `passed`, `failed`, `skipped`, `report-path`. Writes to GitHub Step Summary automatically.
+- **Pre-commit hook examples** (`examples/hooks/`): Drop-in Husky (`husky-pre-commit.sh`) and lefthook (`lefthook.yml`) configs that run RuleProbe on every commit.
+- **VS Code integration** (`.vscode/tasks.json`, `.vscode/extensions.json`): Built-in tasks (Run, SARIF, List Rules, Demo) + SARIF Viewer extension recommendation. SARIF report at `.ruleprobe/report.sarif` shows inline squiggles in your instruction files.
+- **Multi-provider HTML comparison** (`--providers a,b,c`): `compare` command now writes both `.md` and `.html` reports. HTML includes colored status chips, score bars, and category leaders section showing which provider leads on each rule category.
+- **Extraction quality** (`list-rules --explain`): `--explain` flag shows assertions, source file+line, and severity per rule. New code pattern detections: `console.log` forbidden, `process.exit` forbidden, `import type` required, `node:` protocol required.
+
 ## v0.4.0 - Demo Mode & New Examples
 
 v0.4.0 ships the `--demo` flag, two new example projects, and an animated terminal demo.
