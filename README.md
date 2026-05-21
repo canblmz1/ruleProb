@@ -4,7 +4,7 @@
 
 [![Node >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![npm](https://img.shields.io/npm/v/ruleprobe-ai)](https://www.npmjs.com/package/ruleprobe-ai)
 
-![RuleProbe Demo](demo.gif)
+![RuleProbe Demo](docs/demo.svg)
 
 RuleProbe is a CLI that turns AI instruction files (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules`, Copilot instructions) into executable compliance tests. It extracts rules, generates disposable sandbox scenarios, runs an AI provider against each one, and produces a scored JSON/Markdown/HTML report.
 
@@ -28,12 +28,15 @@ RuleProbe is a CLI that turns AI instruction files (`CLAUDE.md`, `AGENTS.md`, `.
 ## Quick start
 
 ```bash
-# Zero install — try it now
-npx ruleprobe-ai run examples/strict --provider mock
+# Zero install — try it now (no API key needed)
+npx ruleprobe-ai run examples/strict --demo
 
 # Or install globally
 npm install -g ruleprobe-ai
 # pnpm add -g ruleprobe-ai
+
+# Realistic demo: PASS/FAIL mix, no API key
+ruleprobe run examples/strict --demo
 
 # Real provider (Gemini)
 GEMINI_API_KEY=... ruleprobe run . --provider gemini --extractor hybrid --fail-below 70
