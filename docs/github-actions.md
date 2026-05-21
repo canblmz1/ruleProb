@@ -1,6 +1,79 @@
 # GitHub Actions Integration
 
-RuleProbe can run as a normal CLI step in CI. The recommended baseline is deterministic extraction plus `mock` runtime checks, because it has stable exit behavior and does not require provider credentials.
+## Quickstart — Official Action (Recommended)
+
+Use the official `canblmz1/ruleProb` action directly from the marketplace:
+
+```yaml
+name: RuleProbe Compliance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ruleprobe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Zero-config: mock provider, deterministic extraction, never fails
+      - uses: canblmz1/ruleProb@v0.4.0
+        with:
+          dir: .
+          provider: mock
+          fail-below: '0'
+```
+
+### With a real provider and compliance gate
+
+```yaml
+      - uses: canblmz1/ruleProb@v0.4.0
+        with:
+          provider: gemini
+          extractor: hybrid
+          fail-below: '70'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+```
+
+### Inputs
+
+| Input | Default | Description |
+|---|---|---|
+| `dir` | `.` | Directory with instruction files |
+| `provider` | `mock` | `mock`, `dry-run`, `gemini`, `openrouter`, `claude-code` |
+| `extractor` | `deterministic` | `deterministic`, `ai-assisted`, `hybrid` |
+| `fail-below` | `0` | Fail if score drops below this value (0-100) |
+| `model` | _(provider default)_ | Model name for providers that support it |
+| `version` | `latest` | `ruleprobe-ai` npm version to pin |
+| `args` | _(empty)_ | Extra CLI flags (e.g. `--no-cache --debug-extractor`) |
+
+### Outputs
+
+| Output | Description |
+|---|---|
+| `score` | Compliance score (0-100) |
+| `passed` | Number of rules that passed |
+| `failed` | Number of rules that failed |
+| `skipped` | Number of rules that were skipped |
+| `report-path` | Path to the JSON report (`.ruleprobe/report.json`) |
+
+```yaml
+      - uses: canblmz1/ruleProb@v0.4.0
+        id: ruleprobe
+        with:
+          provider: mock
+      - name: Print score
+        run: echo "Score ${{ steps.ruleprobe.outputs.score }}"
+```
+
+---
+
+## Manual CLI step (alternative)
+
+RuleProbe can also run as a normal CLI step without the action:
 
 ```yaml
 name: RuleProbe Compliance
@@ -47,6 +120,13 @@ jobs:
 ```
 
 Exit behavior:
+
+- `ruleprobe run ... --fail-below 70` exits non-zero when the overall score is below 70.
+- `mock` is deterministic and suitable for wiring the compliance gate.
+- `dry-run` is useful for checking extraction and report generation only; use `--fail-below 0`.
+- Real providers can fail because of missing keys, quota, rate limits, malformed structured output, or local CLI availability. Gate on them only when your team accepts that operational dependency.
+- Reports include a Known Limitations section so CI artifacts show whether the run used simulation, dry-run, fallback extraction, or failed providers.
+
 
 - `ruleprobe run ... --fail-below 70` exits non-zero when the overall score is below 70.
 - `mock` is deterministic and suitable for wiring the compliance gate.

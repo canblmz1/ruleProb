@@ -1,0 +1,116 @@
+name: RuleProbe
+description: Test whether your CLAUDE.md / AGENTS.md / .cursor/rules are actually followed at runtime
+author: canblmz1
+
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  dir:
+    description: Directory containing instruction files (CLAUDE.md, AGENTS.md, .cursor/rules). Defaults to repo root.
+    required: false
+    default: '.'
+  provider:
+    description: AI provider to run scenarios against. Options: mock, dry-run, gemini, openrouter, claude-code
+    required: false
+    default: mock
+  extractor:
+    description: Rule extraction mode. Options: deterministic, ai-assisted, hybrid
+    required: false
+    default: deterministic
+  fail-below:
+    description: Fail the step if compliance score drops below this value (0-100). Set to 0 to never fail.
+    required: false
+    default: '0'
+  model:
+    description: Model name for providers that support it (e.g. gemini-2.5-flash, openai/gpt-4o)
+    required: false
+    default: ''
+  version:
+    description: ruleprobe-ai npm version to use (e.g. latest, 0.4.0)
+    required: false
+    default: latest
+  args:
+    description: Extra CLI flags passed verbatim to ruleprobe run (e.g. --no-cache --debug-extractor)
+    required: false
+    default: ''
+
+outputs:
+  score:
+    description: Compliance score (0-100)
+    value: ${{ steps.run.outputs.score }}
+  passed:
+    description: Number of rules that passed
+    value: ${{ steps.run.outputs.passed }}
+  failed:
+    description: Number of rules that failed
+    value: ${{ steps.run.outputs.failed }}
+  skipped:
+    description: Number of rules that were skipped
+    value: ${{ steps.run.outputs.skipped }}
+  report-path:
+    description: Path to the generated JSON report
+    value: ${{ steps.run.outputs.report-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install ruleprobe-ai
+      shell: bash
+      run: npm install -g ruleprobe-ai@${{ inputs.version }} --silent
+
+    - name: Run RuleProbe
+      id: run
+      shell: bash
+      env:
+        GEMINI_API_KEY: ${{ env.GEMINI_API_KEY }}
+        OPENROUTER_API_KEY: ${{ env.OPENROUTER_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY }}
+      run: |
+        set +e
+
+        EXTRA_ARGS=""
+        if [ -n "${{ inputs.model }}" ]; then
+          EXTRA_ARGS="--model ${{ inputs.model }}"
+        fi
+        if [ -n "${{ inputs.args }}" ]; then
+          EXTRA_ARGS="$EXTRA_ARGS ${{ inputs.args }}"
+        fi
+
+        ruleprobe run "${{ inputs.dir }}" \
+          --provider "${{ inputs.provider }}" \
+          --extractor "${{ inputs.extractor }}" \
+          --fail-below "${{ inputs.fail-below }}" \
+          $EXTRA_ARGS \
+          2>&1 | tee /tmp/ruleprobe-output.txt
+        EXIT_CODE=${PIPESTATUS[0]}
+
+        # Parse score from JSON report if it exists
+        REPORT_PATH=".ruleprobe/report.json"
+        if [ -f "$REPORT_PATH" ]; then
+          SCORE=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.score??r.complianceScore??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
+          PASSED=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.passed??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
+          FAILED=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.failed??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
+          SKIPPED=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.skipped??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
+          echo "score=${SCORE}" >> $GITHUB_OUTPUT
+          echo "passed=${PASSED}" >> $GITHUB_OUTPUT
+          echo "failed=${FAILED}" >> $GITHUB_OUTPUT
+          echo "skipped=${SKIPPED}" >> $GITHUB_OUTPUT
+          echo "report-path=${REPORT_PATH}" >> $GITHUB_OUTPUT
+        fi
+
+        exit $EXIT_CODE
+
+    - name: Write GitHub Step Summary
+      if: always()
+      shell: bash
+      run: |
+        REPORT_PATH=".ruleprobe/report.md"
+        if [ -f "$REPORT_PATH" ]; then
+          echo "## RuleProbe Compliance Report" >> $GITHUB_STEP_SUMMARY
+          cat "$REPORT_PATH" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## RuleProbe" >> $GITHUB_STEP_SUMMARY
+          echo "No markdown report found at ${REPORT_PATH}" >> $GITHUB_STEP_SUMMARY
+        fi
