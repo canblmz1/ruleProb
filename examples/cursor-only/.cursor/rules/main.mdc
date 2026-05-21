@@ -1,0 +1,21 @@
+---
+description: Core coding standards enforced on all source files
+globs: ["src/**/*.ts", "src/**/*.tsx", "*.ts"]
+---
+
+# Coding Rules
+
+## Package Manager
+- ALWAYS use pnpm. Never use npm or yarn.
+
+## TypeScript
+- Never use `any` type. Use `unknown` or explicit types.
+- Never leave `console.log` in production code. Use the project logger.
+
+## File Safety
+- Never modify files under `src/generated/`.
+- Never modify `.env` or `.env.*` files directly.
+
+## Commands
+- ALWAYS run `pnpm typecheck` before finishing.
+- NEVER run `git push --force`.
