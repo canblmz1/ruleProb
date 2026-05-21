@@ -56,6 +56,51 @@ export async function writeBadgeFiles(
   return { scorePath, trendPath };
 }
 
+/**
+ * Generate a shields.io endpoint JSON file.
+ * Usage: https://img.shields.io/endpoint?url=<raw-url-to-badge.json>
+ * See: https://shields.io/endpoint
+ */
+export interface ShieldsEndpoint {
+  schemaVersion: 1;
+  label: string;
+  message: string;
+  color: string;
+  style?: string;
+  namedLogo?: string;
+}
+
+export function generateShieldsEndpoint(score: number, options: BadgeConfig = {}): ShieldsEndpoint {
+  const safeScore = Math.min(100, Math.max(0, Math.round(isFinite(score) ? score : 0)));
+  const color = options.color ?? shieldsColor(safeScore);
+  return {
+    schemaVersion: 1,
+    label: options.label ?? 'ruleprobe',
+    message: `${safeScore} / 100`,
+    color,
+    style: options.style ?? 'flat',
+  };
+}
+
+export async function writeShieldsEndpoint(
+  score: number,
+  config: Config
+): Promise<string> {
+  await fs.ensureDir(config.reportDir);
+  const endpoint = generateShieldsEndpoint(score);
+  const endpointPath = path.join(config.reportDir, 'badge.json');
+  await fs.writeFile(endpointPath, JSON.stringify(endpoint, null, 2), 'utf-8');
+  return endpointPath;
+}
+
+function shieldsColor(score: number): string {
+  if (score >= 90) return 'brightgreen';
+  if (score >= 70) return 'blue';
+  if (score >= 50) return 'yellow';
+  if (score >= 30) return 'orange';
+  return 'red';
+}
+
 function scoreColor(score: number): string {
   if (score >= 90) return '2ea44f';
   if (score >= 70) return '4c8bf5';
