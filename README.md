@@ -249,12 +249,23 @@ ruleprobe badge --score 85 --weighted-score 78
 Outputs:
 - `.ruleprobe/badge-score.svg` — current score badge
 - `.ruleprobe/badge-trend.svg` — trend direction badge (up/down/stable)
+- `.ruleprobe/badge.json` — **shields.io endpoint JSON** (auto-generated on every run/badge)
 
 Use them in your README:
 
 ```markdown
 ![RuleProbe Score](.ruleprobe/badge-score.svg)
 ```
+
+### Shields.io dynamic badge
+
+Host `.ruleprobe/badge.json` at a public URL (e.g. commit it, or serve via GitHub Pages), then use the shields.io endpoint:
+
+```markdown
+[![RuleProbe](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/YOUR/REPO/main/.ruleprobe/badge.json)](https://github.com/YOUR/REPO)
+```
+
+The JSON format follows the [shields.io endpoint spec](https://shields.io/endpoint). Fields: `schemaVersion`, `label`, `message`, `color`, `style`.
 
 ---
 

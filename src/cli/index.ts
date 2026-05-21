@@ -33,7 +33,7 @@ import { listPacks, getPack, searchPacks, fetchRemotePack } from '../packs/regis
 import { runDoctor } from './doctor.js';
 import { clearExtractionCache } from '../extractors/cache.js';
 import { EvaluationResult, Provider, Config } from '../types/index.js';
-import { writeBadgeFiles } from '../badge/generate.js';
+import { writeBadgeFiles, writeShieldsEndpoint } from '../badge/generate.js';
 import { appendHistory, loadHistory, computeTrendSummary, clearHistory, filterHistory } from '../history/track.js';
 import { readBaseline, writeBaseline, computeBaselineDelta, formatBaselineDelta, BaselineDelta } from '../baseline/compare.js';
 import fs from 'fs-extra';
@@ -317,7 +317,9 @@ program
       keepSandbox: false
     };
     const { scorePath } = await writeBadgeFiles(score, weightedScore, undefined, config);
+    await writeShieldsEndpoint(score, config);
     console.log(chalk.green(`Badge written: ${scorePath}`));
+    console.log(chalk.gray(`Shields.io endpoint: ${path.join(config.reportDir, 'badge.json')} — use https://img.shields.io/endpoint?url=<raw-url-to-badge.json>`));
   });
 
 program
@@ -764,6 +766,7 @@ async function executeRun(
 
     if (opts.generateBadge) {
       const { scorePath, trendPath } = await writeBadgeFiles(finalScore, trend.history[trend.history.length - 1]?.weightedScore || finalScore, trend, config);
+      await writeShieldsEndpoint(finalScore, config);
       console.log(`Badges written:\n- ${scorePath}${trendPath ? `\n- ${trendPath}` : ''}\n`);
     }
 
