@@ -128,8 +128,42 @@ Exit behavior:
 - Reports include a Known Limitations section so CI artifacts show whether the run used simulation, dry-run, fallback extraction, or failed providers.
 
 
-- `ruleprobe run ... --fail-below 70` exits non-zero when the overall score is below 70.
-- `mock` is deterministic and suitable for wiring the compliance gate.
-- `dry-run` is useful for checking extraction and report generation only; use `--fail-below 0`.
-- Real providers can fail because of missing keys, quota, rate limits, malformed structured output, or local CLI availability. Gate on them only when your team accepts that operational dependency.
-- Reports include a Known Limitations section so CI artifacts show whether the run used simulation, dry-run, fallback extraction, or failed providers.
+---
+
+## Slack & Teams Regression Notifications
+
+Get alerted when compliance drops below your threshold. Copy `.github/workflows/ruleprobe-notify.example.yml` from this repo:
+
+```yaml
+jobs:
+  compliance:
+    steps:
+      - uses: canblmz1/ruleProb@v0.5.0
+        id: run
+        with:
+          dir: .
+          provider: mock
+          fail-below: 70
+        continue-on-error: true
+
+  notify-slack:
+    needs: compliance
+    if: needs.compliance.outputs.status == 'red'
+    steps:
+      - name: Send Slack alert
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d '{"text": "🔴 RuleProbe regression — score dropped below threshold"}'
+```
+
+Full example with Teams support: [`.github/workflows/ruleprobe-notify.example.yml`](../.github/workflows/ruleprobe-notify.example.yml)
+
+**Required secrets:**
+| Secret | Purpose |
+|--------|---------|
+| `SLACK_WEBHOOK_URL` | Slack Incoming Webhook URL |
+| `TEAMS_WEBHOOK_URL` | Microsoft Teams Incoming Webhook URL |
+

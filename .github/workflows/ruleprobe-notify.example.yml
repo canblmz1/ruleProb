@@ -1,0 +1,125 @@
+# RuleProbe — Slack & Teams regression notification example
+#
+# Copy this to your repo's .github/workflows/ directory.
+# Sends a Slack and/or Teams message when ruleprobe compliance drops below threshold.
+#
+# Required secrets:
+#   SLACK_WEBHOOK_URL   — Slack Incoming Webhook URL
+#   TEAMS_WEBHOOK_URL   — Teams Incoming Webhook URL (optional)
+#   GEMINI_API_KEY      — only if using provider: gemini
+
+name: RuleProbe Compliance + Notify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 9 * * 1'   # Monday 09:00 UTC — weekly compliance check
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    outputs:
+      score: ${{ steps.run.outputs.score }}
+      passed: ${{ steps.run.outputs.passed }}
+      failed: ${{ steps.run.outputs.failed }}
+      status: ${{ steps.run.outputs.status }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run RuleProbe
+        id: run
+        uses: canblmz1/ruleProb@v0.5.0
+        with:
+          dir: .
+          provider: mock           # change to gemini for real scoring
+          extractor: deterministic
+          fail-below: 70
+        # env:
+        #   GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        continue-on-error: true    # capture score even on failure
+
+      - name: Set compliance status
+        id: status
+        run: |
+          SCORE="${{ steps.run.outputs.score }}"
+          if [ "$SCORE" -ge 90 ]; then
+            echo "status=green" >> "$GITHUB_OUTPUT"
+          elif [ "$SCORE" -ge 70 ]; then
+            echo "status=yellow" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=red" >> "$GITHUB_OUTPUT"
+          fi
+
+  notify-slack:
+    needs: compliance
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.compliance.outputs.status == 'red' &&
+      github.event_name != 'pull_request'
+    steps:
+      - name: Send Slack alert
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          SCORE="${{ needs.compliance.outputs.score }}"
+          FAILED="${{ needs.compliance.outputs.failed }}"
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          RUN_URL="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"🔴 *RuleProbe compliance regression* in \`$REPO\`\",
+              \"attachments\": [{
+                \"color\": \"danger\",
+                \"fields\": [
+                  { \"title\": \"Score\",   \"value\": \"$SCORE / 100\", \"short\": true },
+                  { \"title\": \"Failed\",  \"value\": \"$FAILED rule(s)\", \"short\": true },
+                  { \"title\": \"Branch\",  \"value\": \"\`$BRANCH\`\", \"short\": true },
+                  { \"title\": \"Run\",     \"value\": \"<$RUN_URL|View details>\", \"short\": true }
+                ]
+              }]
+            }"
+
+  notify-teams:
+    needs: compliance
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.compliance.outputs.status == 'red' &&
+      github.event_name != 'pull_request'
+    steps:
+      - name: Send Teams alert
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          SCORE="${{ needs.compliance.outputs.score }}"
+          FAILED="${{ needs.compliance.outputs.failed }}"
+          REPO="${{ github.repository }}"
+          RUN_URL="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+
+          curl -s -X POST "$TEAMS_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"@type\": \"MessageCard\",
+              \"@context\": \"https://schema.org/extensions\",
+              \"themeColor\": \"FF0000\",
+              \"summary\": \"RuleProbe compliance regression\",
+              \"sections\": [{
+                \"activityTitle\": \"🔴 RuleProbe compliance regression in \`$REPO\`\",
+                \"facts\": [
+                  { \"name\": \"Score\",  \"value\": \"$SCORE / 100\" },
+                  { \"name\": \"Failed\", \"value\": \"$FAILED rule(s)\" }
+                ],
+                \"potentialAction\": [{
+                  \"@type\": \"OpenUri\",
+                  \"name\": \"View run\",
+                  \"targets\": [{ \"os\": \"default\", \"uri\": \"$RUN_URL\" }]
+                }]
+              }]
+            }"
