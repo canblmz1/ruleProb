@@ -4,7 +4,7 @@ import { minimatch } from 'minimatch';
 export async function evaluateResult(scenario: Scenario, providerResult: ProviderResult): Promise<EvaluationResult> {
   const rawOutput = providerResult.rawOutput || '';
 
-  if (rawOutput.includes('Dry run completed') || rawOutput.includes('stub')) {
+  if (providerResult.kind === 'dry-run') {
     return {
       scenario,
       providerResult,
@@ -16,7 +16,7 @@ export async function evaluateResult(scenario: Scenario, providerResult: Provide
       scenarioId: scenario.id,
       expected: 'Run the agent',
       actual: 'Agent was skipped',
-      evidence: rawOutput.includes('requires') ? 'Provider missing API key' : 'Provider was dry-run or a skeleton',
+      evidence: 'Provider was dry-run',
       severity: scenario.severity || 'low',
       category: scenario.ruleCategory,
       sourceFile: scenario.sourceFile,

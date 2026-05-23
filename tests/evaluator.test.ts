@@ -184,12 +184,74 @@ test('dry run provider returns SKIPPED with DRY_RUN skipReason', async () => {
   };
 
   const result = await evaluateResult(scenario, normalizeProviderResult({
+    kind: 'dry-run',
     success: true,
     rawOutput: 'Dry run completed. No agent executed.'
   }));
 
   expect(result.status).toBe('SKIPPED');
   expect(result.skipReason).toBe('DRY_RUN');
+});
+
+test('kind: dry-run triggers SKIPPED regardless of rawOutput content', async () => {
+  const scenario: Scenario = {
+    id: 's1',
+    ruleId: 'r1',
+    title: 'Kind dry-run test',
+    prompt: 'test',
+    sandboxFiles: {},
+    expectedAssertions: [{ type: 'forbidden_command', commandIncludes: 'rm' }]
+  };
+
+  const result = await evaluateResult(scenario, normalizeProviderResult({
+    kind: 'dry-run',
+    success: true,
+    rawOutput: 'some unrelated output'
+  }));
+
+  expect(result.status).toBe('SKIPPED');
+  expect(result.skipReason).toBe('DRY_RUN');
+});
+
+test('rawOutput containing "stub" with kind: real is NOT treated as SKIPPED', async () => {
+  const scenario: Scenario = {
+    id: 's1',
+    ruleId: 'r1',
+    title: 'Stub in output but real provider',
+    prompt: 'test',
+    sandboxFiles: {},
+    expectedAssertions: [{ type: 'required_command', commandIncludes: 'pnpm test' }]
+  };
+
+  const result = await evaluateResult(scenario, normalizeProviderResult({
+    kind: 'real',
+    success: true,
+    rawOutput: 'This output mentions stub but is a real provider.',
+    commands: ['pnpm test']
+  }));
+
+  expect(result.status).not.toBe('SKIPPED');
+  expect(result.status).toBe('PASS');
+});
+
+test('rawOutput containing "Dry run completed" without kind: dry-run is NOT treated as SKIPPED', async () => {
+  const scenario: Scenario = {
+    id: 's1',
+    ruleId: 'r1',
+    title: 'Dry run text but no kind field',
+    prompt: 'test',
+    sandboxFiles: {},
+    expectedAssertions: [{ type: 'required_command', commandIncludes: 'pnpm test' }]
+  };
+
+  const result = await evaluateResult(scenario, normalizeProviderResult({
+    success: true,
+    rawOutput: 'Dry run completed',
+    commands: ['pnpm test']
+  }));
+
+  expect(result.status).not.toBe('SKIPPED');
+  expect(result.status).toBe('PASS');
 });
 
 test('no assertions returns SKIPPED with NO_ASSERTIONS skipReason', async () => {
