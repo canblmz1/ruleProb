@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.7.0 - Coverage, PR Comments & Evaluator Hardening
+
+v0.7.0 delivers three targeted quality improvements.
+
+- **Rule coverage% in reports** (`coverage.evaluated / coverage.total / coverage.skipped / coverage.pct`): Every JSON report now includes a `coverage` block. The Markdown proof block and shields.io badge message show coverage alongside the compliance score. Helps distinguish "high score because all rules ran" from "high score because most were skipped."
+- **PR comment workflow** (`comment: 'true'` in GitHub Action): The `canblmz1/ruleProb` Action now accepts a `comment` input. When enabled on a `pull_request` event, it posts the compliance summary as a PR comment — editing the previous one on re-runs (no spam). Requires `pull-requests: write` permission.
+- **Enhanced step summary**: GitHub Actions step summary now shows a color-coded score badge (🟢 ≥90, 🟡 ≥70, 🔴 <70) before the full report.
+- **Evaluator hardening** (TD-03): Replaced fragile string-sniffing SKIPPED detection (`rawOutput.includes('stub')`) with a typed `kind: 'dry-run' | 'real'` field on `ProviderResult`. Real providers with "stub" in their output are no longer misclassified as SKIPPED.
+
 ## v0.6.0 - FAZ 4: Ecosystem & Network Effects
 
 v0.6.0 delivers four FAZ 4 ecosystem features.
