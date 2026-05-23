@@ -35,6 +35,10 @@ inputs:
     description: Extra CLI flags passed verbatim to ruleprobe run (e.g. --no-cache --debug-extractor)
     required: false
     default: ''
+  comment:
+    description: 'Post compliance score as a PR comment (requires pull_request event and write permissions)'
+    required: false
+    default: 'false'
 
 outputs:
   score:
@@ -100,6 +104,18 @@ runs:
           echo "report-path=${REPORT_PATH}" >> $GITHUB_OUTPUT
         fi
 
+        # Post PR comment if requested
+        if [ "${{ inputs.comment }}" = "true" ] && [ -n "${{ github.event.pull_request.number }}" ]; then
+          PR_COMMENT_PATH=".ruleprobe/report.pr-comment.md"
+          if [ -f "$PR_COMMENT_PATH" ]; then
+            gh pr comment "${{ github.event.pull_request.number }}" \
+              --body-file "$PR_COMMENT_PATH" \
+              --edit-last 2>/dev/null || \
+            gh pr comment "${{ github.event.pull_request.number }}" \
+              --body-file "$PR_COMMENT_PATH"
+          fi
+        fi
+
         exit $EXIT_CODE
 
     - name: Write GitHub Step Summary
@@ -107,8 +123,16 @@ runs:
       shell: bash
       run: |
         REPORT_PATH=".ruleprobe/report.md"
+        SCORE=""
+        if [ -f ".ruleprobe/report.json" ]; then
+          SCORE=$(node -e "try{const r=require('./.ruleprobe/report.json');console.log(r.score??r.complianceScore??'')}catch(e){}" 2>/dev/null)
+        fi
+        if [ -n "$SCORE" ]; then
+          if [ "$SCORE" -ge 90 ]; then COLOR="🟢"; elif [ "$SCORE" -ge 70 ]; then COLOR="🟡"; else COLOR="🔴"; fi
+          echo "### ${COLOR} RuleProbe Score: ${SCORE}/100" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
         if [ -f "$REPORT_PATH" ]; then
-          echo "## RuleProbe Compliance Report" >> $GITHUB_STEP_SUMMARY
           cat "$REPORT_PATH" >> $GITHUB_STEP_SUMMARY
         else
           echo "## RuleProbe" >> $GITHUB_STEP_SUMMARY

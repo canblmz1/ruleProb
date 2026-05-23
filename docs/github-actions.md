@@ -49,6 +49,7 @@ jobs:
 | `model` | _(provider default)_ | Model name for providers that support it |
 | `version` | `latest` | `ruleprobe-ai` npm version to pin |
 | `args` | _(empty)_ | Extra CLI flags (e.g. `--no-cache --debug-extractor`) |
+| `comment` | `false` | Post score as a PR comment (requires `pull_request` event + `pull-requests: write`) |
 
 ### Outputs
 
@@ -68,6 +69,35 @@ jobs:
       - name: Print score
         run: echo "Score ${{ steps.ruleprobe.outputs.score }}"
 ```
+
+---
+
+## PR Comment Workflow
+
+Post compliance scores directly to pull requests:
+
+```yaml
+name: RuleProbe Compliance
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: canblmz1/ruleProb@v0.7.0
+        with:
+          provider: mock
+          fail-below: '70'
+          comment: 'true'
+```
+
+The `comment: 'true'` input requires `pull-requests: write` permission and a `pull_request` event trigger. The action will edit its previous comment on re-runs (no spam).
 
 ---
 
