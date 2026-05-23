@@ -274,7 +274,7 @@ The JSON format follows the [shields.io endpoint spec](https://shields.io/endpoi
 ### Official GitHub Action (zero-config)
 
 ```yaml
-- uses: canblmz1/ruleProb@v0.4.0
+- uses: canblmz1/ruleProb@v0.7.1
   with:
     provider: mock      # no API key needed
     fail-below: '70'    # block PR if score drops below 70
@@ -283,7 +283,7 @@ The JSON format follows the [shields.io endpoint spec](https://shields.io/endpoi
 With Gemini for real evaluation:
 
 ```yaml
-- uses: canblmz1/ruleProb@v0.4.0
+- uses: canblmz1/ruleProb@v0.7.1
   with:
     provider: gemini
     extractor: hybrid

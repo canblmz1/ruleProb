@@ -1,5 +1,11 @@
 # Release Notes
 
+## v0.7.1 - Security & CI Fixes
+
+- **Security (TD-06):** Gemini API key moved from URL query string to `x-goog-api-key` request header — prevents key exposure in server logs and proxies
+- **CI fix:** GitHub Action step summary now correctly reads score and result counts from `report.json` (`overview.overallScore` path)
+- **Docs:** README CI examples updated to reference `@v0.7.1`
+
 ## v0.7.0 - Coverage, PR Comments & Evaluator Hardening
 
 v0.7.0 delivers three targeted quality improvements.
