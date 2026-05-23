@@ -11,6 +11,50 @@ import { runAIAssistedExtraction } from './aiAssisted.js';
 // extractor mode so we never reuse a cached result across model upgrades or
 // prompt changes.
 const PROMPT_VERSION = 'v1';
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const MAX_CACHE_ENTRIES = 100;
+
+async function evictStaleEntries(cacheDir: string): Promise<void> {
+  const now = Date.now();
+  const entries = await fs.readdir(cacheDir).catch(() => []);
+  for (const entry of entries) {
+    if (!entry.endsWith('.json')) continue;
+    const filePath = path.join(cacheDir, entry);
+    try {
+      const data = await fs.readJson(filePath);
+      const savedAt = new Date(data?.savedAt ?? 0).getTime();
+      if (now - savedAt > CACHE_TTL_MS) {
+        await fs.remove(filePath);
+      }
+    } catch {
+      // corrupt file — remove it
+      await fs.remove(filePath).catch(() => {});
+    }
+  }
+}
+
+async function enforceMaxEntries(cacheDir: string): Promise<void> {
+  const entries = await fs.readdir(cacheDir).catch(() => []);
+  const jsonEntries = entries.filter(e => e.endsWith('.json'));
+  if (jsonEntries.length <= MAX_CACHE_ENTRIES) return;
+
+  // Read timestamps, sort oldest-first, remove excess
+  const withTimes: { file: string; savedAt: number }[] = [];
+  for (const entry of jsonEntries) {
+    const filePath = path.join(cacheDir, entry);
+    try {
+      const data = await fs.readJson(filePath);
+      withTimes.push({ file: filePath, savedAt: new Date(data?.savedAt ?? 0).getTime() });
+    } catch {
+      withTimes.push({ file: filePath, savedAt: 0 });
+    }
+  }
+  withTimes.sort((a, b) => a.savedAt - b.savedAt);
+  const toRemove = withTimes.slice(0, withTimes.length - MAX_CACHE_ENTRIES);
+  for (const { file } of toRemove) {
+    await fs.remove(file).catch(() => {});
+  }
+}
 
 export async function runAIAssistedExtractionCached(
   files: { path: string; content: string }[],
@@ -26,6 +70,8 @@ export async function runAIAssistedExtractionCached(
 
   const cacheDir = path.resolve('.ruleprobe', 'cache');
   await fs.ensureDir(cacheDir);
+  await evictStaleEntries(cacheDir);
+  await enforceMaxEntries(cacheDir);
 
   const provider = config.provider || 'unknown';
   const model = config.model || 'default';
