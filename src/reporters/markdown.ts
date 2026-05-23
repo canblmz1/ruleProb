@@ -9,7 +9,15 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
 
   const lines = [
     '# RuleProbe Report',
-    '',
+    ''
+  ];
+
+  if (config.provider === 'mock') {
+    lines.push('> ⚠ **SIMULATED RESULTS** — This report was generated with the mock provider. Scores reflect deterministic simulation, not real agent behavior. Use `--provider gemini` or `--provider openrouter` for real evaluation.');
+    lines.push('');
+  }
+
+  lines.push(
     `Overall Score: ${proof.finalScore}/100 (severity-weighted: ${proof.weightedScore}/100)`,
     '',
     '## Summary',
@@ -18,7 +26,7 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
     `- FAIL: ${results.filter(result => result.status === 'FAIL').length}`,
     `- SKIPPED: ${results.filter(result => result.status === 'SKIPPED').length}`,
     ''
-  ];
+  );
 
   if (delta) {
     lines.push('## Baseline Comparison');

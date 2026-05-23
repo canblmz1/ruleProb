@@ -1,6 +1,6 @@
 {
   "name": "ruleprobe-ai",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Test whether your repo AI instructions actually survive execution.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

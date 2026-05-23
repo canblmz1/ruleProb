@@ -20,7 +20,8 @@ export async function writeJsonReport(results: EvaluationResult[], config: Confi
       failed: results.filter(r => r.status === 'FAIL').length,
       skipped: results.filter(r => r.status === 'SKIPPED').length,
       overallScore: proof.finalScore,
-      weightedScore: proof.weightedScore
+      weightedScore: proof.weightedScore,
+      simulated: config.provider === 'mock'
     },
     coverage: {
       evaluated: evaluatedCount,

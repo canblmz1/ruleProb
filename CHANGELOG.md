@@ -1,5 +1,10 @@
 # Release Notes
 
+## v0.8.0 - UX & Prompt Quality
+
+- **UX (TD-08):** Mock provider reports now show a prominent `⚠ SIMULATED` notice in proof block, JSON report (`overview.simulated: true`), and markdown report — prevents users from mistaking mock results for real agent evaluations
+- **Fix (TD-04):** Gemini provider prompt separator now uses real newlines instead of literal `\n` character sequences — improves prompt formatting and model response quality
+
 ## v0.7.1 - Security & CI Fixes
 
 - **Security (TD-06):** Gemini API key moved from URL query string to `x-goog-api-key` request header — prevents key exposure in server logs and proxies

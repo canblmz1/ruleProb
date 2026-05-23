@@ -74,7 +74,7 @@ Rules:
 
     try {
       if (this.config.noExecuteActions) {
-        rawOutput += 'Sandbox execution bypassed via --no-execute-actions.\\n';
+        rawOutput += 'Sandbox execution bypassed via --no-execute-actions.\n';
       }
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -89,7 +89,7 @@ Rules:
               role: 'user',
               parts: [
                 {
-                  text: systemPrompt + '\\n\\nPROMPT:\\n' + scenario.prompt
+                  text: `${systemPrompt}\n\nPROMPT:\n${scenario.prompt}`
                 }
               ]
             }
