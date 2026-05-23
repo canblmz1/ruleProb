@@ -7,6 +7,7 @@ export class DryRunProvider {
     const { scenario, sandboxDir } = input;
     
     return {
+      kind: 'dry-run',
       finalAnswer: "[DRY RUN] Would execute scenario: " + scenario.title,
       changedFiles: [],
       changedFileContents: {},

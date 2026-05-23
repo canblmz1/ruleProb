@@ -7,6 +7,11 @@ import { BaselineDelta } from '../baseline/compare.js';
 export async function writeJsonReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta) {
   const proof = buildReportProofModel(results, config);
 
+  const totalCount = results.length;
+  const skippedCount = results.filter(r => r.status === 'SKIPPED').length;
+  const evaluatedCount = totalCount - skippedCount;
+  const coveragePct = totalCount > 0 ? Math.round((evaluatedCount / totalCount) * 100) : 0;
+
   const report: Record<string, unknown> = {
     overview: {
       totalRules: results.length,
@@ -16,6 +21,12 @@ export async function writeJsonReport(results: EvaluationResult[], config: Confi
       skipped: results.filter(r => r.status === 'SKIPPED').length,
       overallScore: proof.finalScore,
       weightedScore: proof.weightedScore
+    },
+    coverage: {
+      evaluated: evaluatedCount,
+      total: totalCount,
+      skipped: skippedCount,
+      pct: coveragePct
     },
     scoreBreakdown: proof.scoreBreakdown,
     crossTab: proof.crossTab,

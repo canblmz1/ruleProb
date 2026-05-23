@@ -68,6 +68,7 @@ export interface ProviderInput {
 }
 
 export interface ProviderResult {
+  kind?: 'dry-run' | 'real';
   finalAnswer: string;
   changedFiles: string[];
   changedFileContents: Record<string, string | null>;

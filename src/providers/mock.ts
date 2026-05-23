@@ -28,6 +28,7 @@ export class MockProvider {
     const bucket = hashBucket(scenario.id);
 
     const result: ProviderResult = {
+      kind: 'real',
       finalAnswer: 'I have completed the task and will mention everything.',
       changedFiles: [],
       changedFileContents: {},

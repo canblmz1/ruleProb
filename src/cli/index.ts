@@ -766,7 +766,7 @@ async function executeRun(
 
     if (opts.generateBadge) {
       const { scorePath, trendPath } = await writeBadgeFiles(finalScore, trend.history[trend.history.length - 1]?.weightedScore || finalScore, trend, config);
-      await writeShieldsEndpoint(finalScore, config);
+      await writeShieldsEndpoint(finalScore, config, { pct: coveragePct });
       console.log(`Badges written:\n- ${scorePath}${trendPath ? `\n- ${trendPath}` : ''}\n`);
     }
 

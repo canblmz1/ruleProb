@@ -84,10 +84,15 @@ export function generateShieldsEndpoint(score: number, options: BadgeConfig = {}
 
 export async function writeShieldsEndpoint(
   score: number,
-  config: Config
+  config: Config,
+  coverage?: { pct: number }
 ): Promise<string> {
   await fs.ensureDir(config.reportDir);
+  const safeScore = Math.min(100, Math.max(0, Math.round(isFinite(score) ? score : 0)));
   const endpoint = generateShieldsEndpoint(score);
+  if (coverage !== undefined) {
+    endpoint.message = `${safeScore} / 100 · ${coverage.pct}% coverage`;
+  }
   const endpointPath = path.join(config.reportDir, 'badge.json');
   await fs.writeFile(endpointPath, JSON.stringify(endpoint, null, 2), 'utf-8');
   return endpointPath;

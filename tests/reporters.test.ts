@@ -246,6 +246,34 @@ describe('reporters', () => {
     expect(markdown).toContain('Skipped: 1');
   });
 
+  it('JSON report includes coverage fields and SKIPPED results do not count in evaluated', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-json-coverage-'));
+    tempDirs.push(reportDir);
+    const config = createConfig(reportDir);
+    const skipped = createSkippedResult('DRY_RUN');
+
+    await writeJsonReport([createResult(), createFailingResult(), skipped], config);
+
+    const json = await fs.readJson(path.join(reportDir, 'report.json'));
+    expect(json.coverage).toBeDefined();
+    expect(json.coverage.total).toBe(3);
+    expect(json.coverage.skipped).toBe(1);
+    expect(json.coverage.evaluated).toBe(2);
+    expect(json.coverage.pct).toBe(67);
+  });
+
+  it('markdown proof block contains Coverage line', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-proof-coverage-'));
+    tempDirs.push(reportDir);
+    const config = createConfig(reportDir);
+    const skipped = createSkippedResult('DRY_RUN');
+
+    await writeMarkdownReport([createResult(), createFailingResult(), skipped], config);
+
+    const markdown = await fs.readFile(path.join(reportDir, 'report.md'), 'utf-8');
+    expect(markdown).toContain('Coverage: 2/3 evaluated (67%)  Skipped: 1');
+  });
+
   it('markdown report includes skipped guidance section for code_pattern rules', async () => {
     const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-skipped-guidance-'));
     tempDirs.push(reportDir);
