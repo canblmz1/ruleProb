@@ -1,20 +1,19 @@
 ## Summary
-
-<!-- What does this PR do? One paragraph max. -->
-
-## Checklist
-
-- [ ] `pnpm build` passes
-- [ ] `pnpm typecheck` passes
-- [ ] `pnpm test` passes (all tests green)
-- [ ] `pnpm dev benchmark --fixtures-only` passes
-- [ ] `pnpm dev run examples/basic --provider mock --fail-below 70` passes
-- [ ] New extraction behavior covered by a fixture or test
-- [ ] Reports remain readable and evidence-oriented
+<!-- What does this PR do and why? -->
 
 ## Type of change
-
 - [ ] Bug fix
 - [ ] New feature
-- [ ] Refactor
-- [ ] Docs / config only
+- [ ] Refactor / cleanup
+- [ ] Documentation
+- [ ] CI / release
+
+## Checklist
+- [ ] `pnpm test` passes (all tests green)
+- [ ] `pnpm typecheck` passes
+- [ ] `pnpm build` succeeds
+- [ ] Added/updated tests for changed behavior
+- [ ] CHANGELOG.md updated (for user-facing changes)
+
+## Test evidence
+<!-- Paste test output or describe how you verified the change -->
