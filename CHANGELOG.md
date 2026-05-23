@@ -1,5 +1,10 @@
 # Release Notes
 
+## v0.9.1 - Community & Cache Improvements
+
+- **Community:** Added GitHub issue templates (bug report + feature request), PR template, and CODEOWNERS
+- **Cache (fix):** Extraction cache now auto-evicts entries older than 7 days and enforces a 100-file maximum — prevents unbounded disk growth in `.ruleprobe/cache/`
+
 ## v0.9.0 - Extraction Quality & Security Hardening
 
 - **Extractor (TD-05):** Removed better-auth-specific hardcoded strings (`better-auth/test`, `testwith`, `some under`, `most tests use`) from `repairRule()` in `hybrid.ts` — eliminates overfitting that incorrectly reclassified rules as informational for non-better-auth codebases

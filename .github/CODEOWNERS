@@ -1,0 +1,6 @@
+# Global owner — reviews all PRs
+* @canblmz1
+
+# CI and release files
+/.github/ @canblmz1
+/action.yml @canblmz1
