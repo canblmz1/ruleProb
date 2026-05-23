@@ -99,23 +99,102 @@ test('GeminiProvider handles model override', async () => {
         const urlString = url.toString();
         const match = urlString.match(/\/models\/(.+):generateContent/);
         if (match) fetchCalledWithModel = match[1];
-        
+
         return {
             ok: true,
             status: 200,
             statusText: "OK",
-            text: async () => JSON.stringify({ 
-                candidates: [{ content: { parts: [{ text: JSON.stringify({ actions: [], finalAnswer: "OK" }) }] } }] 
+            text: async () => JSON.stringify({
+                candidates: [{ content: { parts: [{ text: JSON.stringify({ actions: [], finalAnswer: "OK" }) }] } }]
             })
         } as any;
     };
 
     const provider = new GeminiProvider({ model: 'gemini-pro-vision' });
-    await provider.run({ 
-        scenario: { id: "1", title: "test", ruleId: "1", prompt: "Hello", sandboxFiles: {}, expectedAssertions: [] }, 
-        sandboxDir: "tmp" 
+    await provider.run({
+        scenario: { id: "1", title: "test", ruleId: "1", prompt: "Hello", sandboxFiles: {}, expectedAssertions: [] },
+        sandboxDir: "tmp"
     });
 
     expect(fetchCalledWithModel).toBe("gemini-pro-vision");
     global.fetch = originalFetch;
+});
+
+test('GeminiProvider does not expose API key in URL query parameter', async () => {
+  (getEnv as any).mockImplementation((name: string) => {
+    if (name === 'GEMINI_API_KEY') return 'test-gemini-key';
+    return undefined;
+  });
+
+  const originalFetch = global.fetch;
+  let capturedUrl = '';
+
+  global.fetch = async (url: any, options: any) => {
+    capturedUrl = url.toString();
+
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({ actions: [], finalAnswer: "OK" })
+            }]
+          }
+        }]
+      })
+    } as any;
+  };
+
+  const provider = new GeminiProvider({});
+  await provider.run({
+    scenario: { id: "1", title: "test", ruleId: "1", prompt: "Hello", sandboxFiles: {}, expectedAssertions: [] },
+    sandboxDir: "tmp"
+  });
+
+  expect(capturedUrl.includes('test-gemini-key')).toBe(false);
+  expect(capturedUrl.includes('?key=')).toBe(false);
+
+  global.fetch = originalFetch;
+});
+
+test('GeminiProvider sets API key in x-goog-api-key header', async () => {
+  (getEnv as any).mockImplementation((name: string) => {
+    if (name === 'GEMINI_API_KEY') return 'test-gemini-key';
+    return undefined;
+  });
+
+  const originalFetch = global.fetch;
+  let capturedHeaders: any = null;
+
+  global.fetch = async (url: any, options: any) => {
+    capturedHeaders = options.headers;
+
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({ actions: [], finalAnswer: "OK" })
+            }]
+          }
+        }]
+      })
+    } as any;
+  };
+
+  const provider = new GeminiProvider({});
+  await provider.run({
+    scenario: { id: "1", title: "test", ruleId: "1", prompt: "Hello", sandboxFiles: {}, expectedAssertions: [] },
+    sandboxDir: "tmp"
+  });
+
+  expect(capturedHeaders['x-goog-api-key']).toBe('test-gemini-key');
+
+  global.fetch = originalFetch;
 });
