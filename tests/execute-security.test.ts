@@ -9,7 +9,7 @@ async function withSandbox(fn: (dir: string) => Promise<void>) {
   try {
     await fn(dir);
   } finally {
-    await fs.remove(dir);
+    await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => {});
   }
 }
 

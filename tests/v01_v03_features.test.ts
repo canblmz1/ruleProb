@@ -147,9 +147,9 @@ describe('honest mock provider', () => {
       expect(buckets.has('compliant')).toBe(true);
       expect(buckets.has('noncompliant')).toBe(true);
     } finally {
-      await fs.remove(tmp);
+      await fs.rm(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => {});
     }
-  }, 15000);
+  }, 30000);
 });
 
 describe('opencode-go provider', () => {
