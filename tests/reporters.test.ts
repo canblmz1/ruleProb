@@ -290,6 +290,50 @@ describe('reporters', () => {
     expect(markdown).toContain('--provider openrouter');
   });
 
+  it('JSON report overview.simulated is true when provider is mock', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-simulated-json-'));
+    tempDirs.push(reportDir);
+    const config = createConfig(reportDir); // provider: 'mock'
+
+    await writeJsonReport([createResult()], config);
+
+    const json = await fs.readJson(path.join(reportDir, 'report.json'));
+    expect(json.overview.simulated).toBe(true);
+  });
+
+  it('JSON report overview.simulated is false when provider is not mock', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-simulated-gemini-'));
+    tempDirs.push(reportDir);
+    const config: Config = { ...createConfig(reportDir), provider: 'gemini' };
+
+    await writeJsonReport([createResult()], config);
+
+    const json = await fs.readJson(path.join(reportDir, 'report.json'));
+    expect(json.overview.simulated).toBe(false);
+  });
+
+  it('proof block contains SIMULATED when provider is mock', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-simulated-proof-'));
+    tempDirs.push(reportDir);
+    const config = createConfig(reportDir); // provider: 'mock'
+
+    await writeMarkdownReport([createResult()], config);
+
+    const markdown = await fs.readFile(path.join(reportDir, 'report.md'), 'utf-8');
+    expect(markdown).toContain('SIMULATED');
+  });
+
+  it('proof block does not contain SIMULATED when provider is gemini', async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-no-simulated-proof-'));
+    tempDirs.push(reportDir);
+    const config: Config = { ...createConfig(reportDir), provider: 'gemini' };
+
+    await writeMarkdownReport([createResult()], config);
+
+    const markdown = await fs.readFile(path.join(reportDir, 'report.md'), 'utf-8');
+    expect(markdown).not.toContain('SIMULATED');
+  });
+
   it('writes PR comment report with score, counts, and baseline delta', async () => {
     const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruleprobe-report-pr-'));
     tempDirs.push(reportDir);

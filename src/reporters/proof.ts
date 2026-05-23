@@ -214,6 +214,9 @@ function buildShareBlock(
 
   lines.push('RuleProbe Compliance Report');
   lines.push(`Provider: ${config.provider}  Extractor: ${config.extractor || 'deterministic'}`);
+  if (config.provider === 'mock') {
+    lines.push('⚠  SIMULATED — results are deterministic mock data, not real agent behavior');
+  }
   lines.push(`Score: ${finalScore}/100  (severity-weighted: ${scoreBreakdown.weighted}/100)`);
   lines.push(`Coverage: ${evaluatedCount}/${totalCount} evaluated (${coveragePct}%)  Skipped: ${counts.skipped}`);
   lines.push(`Rules tested: ${results.length}  PASS=${counts.pass}  PARTIAL=${counts.partial}  FAIL=${counts.fail}  SKIPPED=${counts.skipped}`);
