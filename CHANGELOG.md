@@ -1,5 +1,11 @@
 # Release Notes
 
+## v0.9.0 - Extraction Quality & Security Hardening
+
+- **Extractor (TD-05):** Removed better-auth-specific hardcoded strings (`better-auth/test`, `testwith`, `some under`, `most tests use`) from `repairRule()` in `hybrid.ts` — eliminates overfitting that incorrectly reclassified rules as informational for non-better-auth codebases
+- **Security (TD-07):** `add-url` content is now sanitized before appending to instruction files: 100KB size limit, HTML detection and rejection, max 100 rules per pack, rule type validation
+- **Deps (TD-10):** Verified dependency state is clean — `chokidar@5.0.0` correctly installed (4.0.3 is transitive only), `pnpm install --frozen-lockfile` completes without drift
+
 ## v0.8.0 - UX & Prompt Quality
 
 - **UX (TD-08):** Mock provider reports now show a prominent `⚠ SIMULATED` notice in proof block, JSON report (`overview.simulated: true`), and markdown report — prevents users from mistaking mock results for real agent evaluations
