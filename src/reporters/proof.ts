@@ -208,9 +208,14 @@ function buildShareBlock(
   const topLimitations = knownLimitations.slice(0, 3).map(note => `- ${note.message}`);
 
   const lines: string[] = [];
+  const totalCount = results.length;
+  const evaluatedCount = totalCount - counts.skipped;
+  const coveragePct = totalCount > 0 ? Math.round((evaluatedCount / totalCount) * 100) : 0;
+
   lines.push('RuleProbe Compliance Report');
   lines.push(`Provider: ${config.provider}  Extractor: ${config.extractor || 'deterministic'}`);
   lines.push(`Score: ${finalScore}/100  (severity-weighted: ${scoreBreakdown.weighted}/100)`);
+  lines.push(`Coverage: ${evaluatedCount}/${totalCount} evaluated (${coveragePct}%)  Skipped: ${counts.skipped}`);
   lines.push(`Rules tested: ${results.length}  PASS=${counts.pass}  PARTIAL=${counts.partial}  FAIL=${counts.fail}  SKIPPED=${counts.skipped}`);
   lines.push(`Instruction files: ${instructionFiles || '(none)'}`);
   if (topFailures.length > 0) {
