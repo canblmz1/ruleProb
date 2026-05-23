@@ -58,12 +58,6 @@ export async function runHybridExtraction(files: {path: string, content: string}
         targetAssertions = [];
      }
 
-     if (lowerText.includes('most tests use') || lowerText.includes('some under') || lowerText.includes('testwith') || lowerText.includes('better-auth/test')) {
-        targetCategory = 'informational';
-        targetTestable = false;
-        targetAssertions = [];
-     }
-     
      return { ...rule, category: targetCategory, testable: targetTestable, assertions: targetAssertions };
   };
 
