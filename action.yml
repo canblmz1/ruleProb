@@ -93,10 +93,10 @@ runs:
         # Parse score from JSON report if it exists
         REPORT_PATH=".ruleprobe/report.json"
         if [ -f "$REPORT_PATH" ]; then
-          SCORE=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.score??r.complianceScore??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
-          PASSED=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.passed??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
-          FAILED=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.failed??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
-          SKIPPED=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.skipped??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
+          SCORE=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.overview?.overallScore??r.score??r.complianceScore??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
+          PASSED=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.overview?.passed??r.passed??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
+          FAILED=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.overview?.failed??r.failed??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
+          SKIPPED=$(node -e "try{const r=require('./${REPORT_PATH}');console.log(r.overview?.skipped??r.skipped??'')}catch(e){console.log('')}" 2>/dev/null || echo '')
           echo "score=${SCORE}" >> $GITHUB_OUTPUT
           echo "passed=${PASSED}" >> $GITHUB_OUTPUT
           echo "failed=${FAILED}" >> $GITHUB_OUTPUT
@@ -125,7 +125,7 @@ runs:
         REPORT_PATH=".ruleprobe/report.md"
         SCORE=""
         if [ -f ".ruleprobe/report.json" ]; then
-          SCORE=$(node -e "try{const r=require('./.ruleprobe/report.json');console.log(r.score??r.complianceScore??'')}catch(e){}" 2>/dev/null)
+          SCORE=$(node -e "try{const r=require('./.ruleprobe/report.json');console.log(r.overview?.overallScore??r.score??r.complianceScore??'')}catch(e){}" 2>/dev/null)
         fi
         if [ -n "$SCORE" ]; then
           if [ "$SCORE" -ge 90 ]; then COLOR="🟢"; elif [ "$SCORE" -ge 70 ]; then COLOR="🟡"; else COLOR="🔴"; fi
