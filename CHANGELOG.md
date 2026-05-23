@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.0.0 - CLI Architecture & Public API
+
+- **Refactor (CLI):** `src/cli/index.ts` (942 lines) split into 20 focused per-command modules under `src/cli/commands/` — each exporting `register(program: Command): void`. The orchestrator is now 53 lines. No behavior changed.
+- **Provider Plugin API:** `src/index.ts` now exports `GeminiProvider`, `OpenRouterProvider`, `DryRunProvider`, `normalizeProviderResult`, and all core types — enables third-party custom providers without depending on internals
+- **Docs:** Added `docs/custom-providers.md` with full programmatic usage guide and ProviderResult field reference
+
 ## v0.9.1 - Community & Cache Improvements
 
 - **Community:** Added GitHub issue templates (bug report + feature request), PR template, and CODEOWNERS
