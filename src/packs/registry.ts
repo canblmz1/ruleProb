@@ -87,6 +87,24 @@ export function searchPacks(tag: string): RulePack[] {
 }
 
 /**
+ * Sanitize raw content fetched from a remote URL before parsing.
+ * Rejects oversized payloads, strips HTML tags, and rejects HTML responses.
+ */
+function sanitizeRemoteContent(raw: string, url: string): string {
+  // 1. Size limit: reject payloads > 100KB
+  if (raw.length > 100_000) {
+    throw new Error(`Remote pack content too large (${raw.length} bytes, max 100000). URL: ${url}`);
+  }
+  // 2. Reject if content looks like HTML (has common HTML markers)
+  if (/<html|<script|<body|<!doctype/i.test(raw)) {
+    throw new Error(`Remote pack content appears to be HTML, not a valid rule pack. URL: ${url}`);
+  }
+  // 3. Strip HTML tags to prevent script injection
+  const stripped = raw.replace(/<[^>]*>/g, '');
+  return stripped;
+}
+
+/**
  * Fetch a remote pack from a raw URL (e.g. GitHub raw content).
  * Expected format: JSON matching RulePack, OR plain-text lines starting with "- ".
  */
@@ -100,24 +118,40 @@ export async function fetchRemotePack(url: string): Promise<RulePack> {
     throw new Error(`Failed to fetch remote pack: HTTP ${res.status} from ${url}`);
   }
   const raw = await res.text();
+  const sanitized = sanitizeRemoteContent(raw, url);
 
   // Try JSON first
+  let parsedJson: unknown;
   try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.rules)) {
-      return parsed as RulePack;
-    }
-    throw new Error('JSON does not match RulePack schema (missing .rules array)');
+    parsedJson = JSON.parse(sanitized);
   } catch {
-    // Fallback: treat as plain-text lines, each "- ..." line becomes a rule
-    const rules = raw
-      .split('\n')
-      .map(l => l.trim())
-      .filter(l => l.startsWith('- '));
-    if (rules.length === 0) {
-      throw new Error('Remote pack content has no rules (expected JSON or "- ..." lines)');
-    }
-    const urlName = url.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'remote-pack';
-    return { name: urlName, description: `Remote pack from ${url}`, tags: ['remote'], rules };
+    parsedJson = null;
   }
+
+  if (parsedJson !== null && typeof parsedJson === 'object' && Array.isArray((parsedJson as Record<string, unknown>)['rules'])) {
+    const parsed = parsedJson as { name?: unknown; description?: unknown; tags?: unknown; rules: unknown[] };
+    // Reject packs with more than 100 rules (abuse prevention)
+    if (parsed.rules.length > 100) {
+      throw new Error(`Remote pack has too many rules (${parsed.rules.length}, max 100)`);
+    }
+    // Ensure each rule is a string
+    if (!parsed.rules.every((r: unknown) => typeof r === 'string')) {
+      throw new Error('Remote pack rules must be an array of strings');
+    }
+    return parsed as unknown as RulePack;
+  }
+
+  // Fallback: treat as plain-text lines, each "- ..." line becomes a rule
+  const rules = sanitized
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.startsWith('- '));
+  if (rules.length === 0) {
+    throw new Error('Remote pack content has no rules (expected JSON or "- ..." lines)');
+  }
+  if (rules.length > 100) {
+    throw new Error(`Remote pack has too many rules (${rules.length}, max 100)`);
+  }
+  const urlName = url.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'remote-pack';
+  return { name: urlName, description: `Remote pack from ${url}`, tags: ['remote'], rules };
 }
