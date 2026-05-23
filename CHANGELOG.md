@@ -1,5 +1,10 @@
 # Release Notes
 
+## v1.0.1 - Windows Reliability
+
+- **Fix (Windows):** `getChangedFiles()` now checks for `.git` before spawning `git status` — eliminates ~30 redundant process spawns per mock-provider test run and fixes 15s timeout on Windows CI
+- **Fix (Windows):** Test sandbox cleanup in `execute-security.test.ts` now uses `fs.rm` with `maxRetries: 5, retryDelay: 100` — eliminates EBUSY race condition during cleanup on Windows
+
 ## v1.0.0 - CLI Architecture & Public API
 
 - **Refactor (CLI):** `src/cli/index.ts` (942 lines) split into 20 focused per-command modules under `src/cli/commands/` — each exporting `register(program: Command): void`. The orchestrator is now 53 lines. No behavior changed.

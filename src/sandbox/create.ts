@@ -65,6 +65,7 @@ export async function cleanupSandbox(sandboxDir: string): Promise<void> {
 }
 
 export async function getChangedFiles(sandboxDir: string): Promise<string[]> {
+  if (!await fs.pathExists(path.join(sandboxDir, '.git'))) return [];
   try {
     const { stdout } = await execa('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: sandboxDir });
     if (!stdout.trim()) return [];
