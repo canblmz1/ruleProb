@@ -198,3 +198,47 @@ test('GeminiProvider sets API key in x-goog-api-key header', async () => {
 
   global.fetch = originalFetch;
 });
+
+test('GeminiProvider uses real newlines (not literal \\n) in prompt separator', async () => {
+  (getEnv as any).mockImplementation((name: string) => {
+    if (name === 'GEMINI_API_KEY') return 'test-gemini-key';
+    return undefined;
+  });
+
+  const originalFetch = global.fetch;
+  let capturedFetchBody: any = null;
+
+  global.fetch = async (url: any, options: any) => {
+    capturedFetchBody = JSON.parse(options.body as string);
+
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({ actions: [], finalAnswer: "Gemini response" })
+            }]
+          }
+        }]
+      })
+    } as any;
+  };
+
+  const provider = new GeminiProvider({});
+  await provider.run({
+    scenario: { id: "1", title: "test", ruleId: "1", prompt: "Test Prompt", sandboxFiles: {}, expectedAssertions: [] },
+    sandboxDir: "tmp"
+  });
+
+  const promptText = capturedFetchBody.contents[0].parts[0].text;
+
+  // Assert that the prompt contains actual newlines, not literal "\n" sequences
+  expect(promptText).toContain('\n\nPROMPT:\n');
+  expect(promptText).not.toContain('\\n\\nPROMPT:\\n');
+  expect(promptText).toContain('Test Prompt');
+
+  global.fetch = originalFetch;
+});
