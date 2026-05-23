@@ -5,4 +5,8 @@ export { extractRules } from './rules/extract.js';
 export { generateScenarios } from './scenarios/generate.js';
 export { createSandbox, cleanupSandbox } from './sandbox/create.js';
 export { MockProvider } from './providers/mock.js';
+export { GeminiProvider } from './providers/gemini.js';
+export { OpenRouterProvider } from './providers/openrouter.js';
+export { DryRunProvider } from './providers/dryRun.js';
+export { normalizeProviderResult } from './providers/normalize.js';
 export { evaluateResult } from './evaluator/score.js';

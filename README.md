@@ -173,6 +173,23 @@ OPENCODE_GO_MODEL=opencode-go/kimi-k2.6
 OPENCODE_GO_AUTH_HEADER_MODE=bearer   # or x-api-key
 ```
 
+### Custom Providers
+
+Implement the `Provider` interface to connect any AI model:
+
+```typescript
+import type { Provider, ProviderInput, ProviderResult } from 'ruleprobe-ai';
+
+export class MyProvider implements Provider {
+  name = 'my-provider';
+  async run(input: ProviderInput): Promise<ProviderResult> {
+    // ... call your model, return structured result
+  }
+}
+```
+
+Full guide: [docs/custom-providers.md](docs/custom-providers.md)
+
 ---
 
 ## Extraction modes
