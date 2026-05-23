@@ -43,3 +43,6 @@ temp/
 # Private strategy docs (not for public repo)
 PRIVATE_ROADMAP.md
 STRATEGY.md
+
+# Git worktrees
+.worktrees/
