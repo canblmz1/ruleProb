@@ -1,5 +1,12 @@
 # Release Notes
 
+## v1.2.0 - Multi-Language Support
+
+- **`--lang` flag:** `ruleprobe run --lang python` (or `go`, `rust`, `node`) activates a language profile that customizes the AI extraction prompt with language-specific package managers, command prefixes, and test runners
+- **Language profiles:** Built-in profiles for Node.js/TypeScript (default), Python (pip/poetry/uv/pytest/ruff), Go (go mod/go test/gofmt/golangci-lint), and Rust (cargo/clippy/rustfmt)
+- **Cache isolation:** Extraction cache key now includes the active language profile — switching `--lang` always produces a fresh extraction, not a stale cross-language result
+- **Validation:** Unknown `--lang` values (e.g. typos) exit with a clear error instead of silently falling back to the Node.js profile
+
 ## v1.1.0 - AI Extraction Reliability
 
 - **Retry on parse failure:** When AI extractor returns unparseable JSON, one repair-prompt retry is attempted before falling back to deterministic extraction — improves extraction success rate for models with inconsistent JSON output
