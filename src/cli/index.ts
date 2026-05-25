@@ -22,6 +22,8 @@ import { register as registerBenchmark } from './commands/benchmark.js';
 import { register as registerAnalyze } from './commands/analyze.js';
 import { register as registerRun } from './commands/run.js';
 import { register as registerLeaderboard } from './commands/leaderboard.js';
+import { register as registerFeedback } from './commands/feedback.js';
+import { register as registerUpgrade } from './commands/upgrade.js';
 
 const program = new Command();
 
@@ -48,5 +50,7 @@ registerBenchmark(program);
 registerAnalyze(program);
 registerRun(program);
 registerLeaderboard(program);
+registerFeedback(program);
+registerUpgrade(program);
 
 program.parse(process.argv);
