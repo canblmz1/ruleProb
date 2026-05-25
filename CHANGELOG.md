@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.1.0 - AI Extraction Reliability
+
+- **Retry on parse failure:** When AI extractor returns unparseable JSON, one repair-prompt retry is attempted before falling back to deterministic extraction — improves extraction success rate for models with inconsistent JSON output
+- **Rule pre-filter:** AI-returned candidates missing required fields (`id`, `text`, `category`, `testable`, `severity`) are rejected before `validateCandidate` — prevents invalid rules from reaching the evaluator
+- **Parse success rate tracking:** Debug mode now reports `parse success rate: X/Y files` per provider — lets you see at a glance how often AI extraction actually succeeded vs fell back
+
 ## v1.0.1 - Windows Reliability
 
 - **Fix (Windows):** `getChangedFiles()` now checks for `.git` before spawning `git status` — eliminates ~30 redundant process spawns per mock-provider test run and fixes 15s timeout on Windows CI
