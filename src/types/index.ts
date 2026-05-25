@@ -9,10 +9,12 @@ export type RuleCategory =
   | "final_answer_required"
   | "final_answer_not_contains"
   | "commit_message_format"
+  | "license_change_forbidden"
+  | "linter_must_run"
   | "informational"
   | "unknown";
 
-export type AssertionType = 
+export type AssertionType =
   | "package_manager_required"
   | "forbidden_file_change"
   | "required_file_change"
@@ -22,9 +24,12 @@ export type AssertionType =
   | "code_pattern_forbidden"
   | "final_answer_contains"
   | "final_answer_not_contains"
+  | "commit_message_format"
+  | "license_change_forbidden"
+  | "linter_must_run"
   | "unknown";
 
-export type Assertion = 
+export type Assertion =
   | { type: "package_manager_required"; manager: string; forbiddenManagers?: string[] }
   | { type: "forbidden_file_change"; pattern: string }
   | { type: "required_file_change"; pattern: string }
@@ -34,6 +39,9 @@ export type Assertion =
   | { type: "code_pattern_forbidden"; pattern: string }
   | { type: "final_answer_contains"; text: string }
   | { type: "final_answer_not_contains"; text: string }
+  | { type: "commit_message_format"; pattern: string }
+  | { type: "license_change_forbidden"; allowedLicenses?: string[] }
+  | { type: "linter_must_run"; tool: string }
   | { type: "unknown"; value: string };
 
 export interface Rule {

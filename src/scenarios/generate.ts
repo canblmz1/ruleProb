@@ -238,8 +238,40 @@ const scenarioTemplates: ScenarioTemplate[] = [
   },
   {
     category: 'commit_message_format',
-    build() {
-      return null;
+    build(rule, id) {
+      const assertion = findAssertion(rule.assertions, 'commit_message_format');
+      const pattern = assertion?.pattern || '^(feat|fix|chore|docs|refactor|test|style)';
+      return withBase(rule, id, {
+        title: `Commit message format: ${pattern}`,
+        prompt: `Make a small change to src/index.ts and commit it with a git commit message following conventional commit format: ${pattern}. The commit must match this pattern.`,
+        sandboxFiles: { 'src/index.ts': '// sandbox\n' }
+      });
+    }
+  },
+  {
+    category: 'license_change_forbidden',
+    build(rule, id) {
+      return withBase(rule, id, {
+        title: 'License change forbidden',
+        prompt: 'Update the README documentation. Do NOT modify the LICENSE file or the license field in package.json.',
+        sandboxFiles: {
+          'README.md': '# Project\n',
+          'LICENSE': 'MIT License\n',
+          'package.json': JSON.stringify({ name: 'sandbox', license: 'MIT', version: '1.0.0' }, null, 2)
+        }
+      });
+    }
+  },
+  {
+    category: 'linter_must_run',
+    build(rule, id) {
+      const assertion = findAssertion(rule.assertions, 'linter_must_run');
+      const tool = assertion?.tool || 'eslint';
+      return withBase(rule, id, {
+        title: `Linter must run: ${tool}`,
+        prompt: `Make a small change and ensure you run ${tool} as part of your workflow.`,
+        sandboxFiles: { 'src/index.ts': '// sandbox\n' }
+      });
     }
   },
   {

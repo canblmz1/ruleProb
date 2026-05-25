@@ -84,7 +84,18 @@ function extractAllFromFrag(frag: string, sourceFile: string, lineNumber: number
   if (!KEYWORD_REGEX.test(frag) && !frag.includes('`') && !frag.includes('mention') && !frag.includes('pnpm') && !frag.includes('npm') && !hasCommitNegation) {
     return [];
   }
-  
+
+  // Check for new structured categories BEFORE the informational gate so that
+  // specific patterns (e.g. "commit message must follow conventional commit: feat|fix")
+  // are captured as testable rules rather than discarded as informational prose.
+  const licenseRules = extractLicenseChangeRules(frag, sourceFile, lineNumber, rawLine);
+  const linterRules = extractLinterRules(frag, sourceFile, lineNumber, rawLine);
+  const commitFormatRules = extractCommitFormatRules(frag, sourceFile, lineNumber, rawLine);
+  if (licenseRules.length > 0 || linterRules.length > 0 || commitFormatRules.length > 0) {
+    rules.push(...licenseRules, ...linterRules, ...commitFormatRules);
+    return rules;
+  }
+
   const isInformational = /conventional commit|commit format|example:|e\.g\.|i\.e\.|for example|most tests use|informational|note:|commit message|should follow|must follow|see:|see also|reference|docs:|chore:|feat\(|fix\(|refactor\(|style\(|test\(|ci\(|build\(|perf\(|BREAKING CHANGE/i.test(frag);
   if (isInformational) {
     const infoRule = createRule(sourceFile, lineNumber, rawLine, frag, 'final_answer_required', 'low', [{ type: 'final_answer_contains', text: 'informational' }]);
@@ -92,7 +103,7 @@ function extractAllFromFrag(frag: string, sourceFile: string, lineNumber: number
     rules.push(infoRule);
     return rules;
   }
-  
+
   rules.push(...extractPackageManagerRules(frag, sourceFile, lineNumber, rawLine));
   rules.push(...extractCommandRules(frag, sourceFile, lineNumber, rawLine));
   rules.push(...extractCodePatternRules(frag, sourceFile, lineNumber, rawLine));
@@ -308,6 +319,70 @@ function normalizeFilePattern(token: string): string {
   }
 
   return normalized;
+}
+
+function extractLicenseChangeRules(line: string, sourceFile: string, lineNumber: number, rawLine: string): Rule[] {
+  const rules: Rule[] = [];
+  const lower = line.toLowerCase();
+  const forbidsLicenseChange =
+    lower.includes('do not change the license') ||
+    lower.includes('do not modify the license') ||
+    lower.includes('license must remain') ||
+    lower.includes('license must not change') ||
+    lower.includes('do not change license') ||
+    lower.includes('never change the license') ||
+    lower.includes('license file must not') ||
+    lower.includes('do not touch the license');
+  if (forbidsLicenseChange) {
+    // Extract allowed license if mentioned (e.g. "license must remain MIT")
+    const licenseMatch = line.match(/remain\s+([A-Z][A-Za-z0-9.-]+)/);
+    const allowedLicenses = licenseMatch ? [licenseMatch[1]] : undefined;
+    const assertion = allowedLicenses
+      ? { type: 'license_change_forbidden' as const, allowedLicenses }
+      : { type: 'license_change_forbidden' as const };
+    rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'license_change_forbidden', 'high', [assertion]));
+  }
+  return rules;
+}
+
+function extractLinterRules(line: string, sourceFile: string, lineNumber: number, rawLine: string): Rule[] {
+  const rules: Rule[] = [];
+  const lower = line.toLowerCase();
+  const LINTER_TOOLS = ['eslint', 'biome', 'ruff', 'clippy', 'gofmt', 'prettier', 'stylelint', 'tslint', 'pylint', 'flake8', 'rubocop'];
+  const requiresRun =
+    lower.includes('always run') ||
+    lower.includes('must run') ||
+    lower.includes('run before') ||
+    lower.includes('ensure you run') ||
+    lower.includes('required to run');
+  if (!requiresRun) return rules;
+  for (const tool of LINTER_TOOLS) {
+    if (lower.includes(tool)) {
+      rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'linter_must_run', 'medium', [{ type: 'linter_must_run', tool }]));
+    }
+  }
+  return rules;
+}
+
+function extractCommitFormatRules(line: string, sourceFile: string, lineNumber: number, rawLine: string): Rule[] {
+  const rules: Rule[] = [];
+  const lower = line.toLowerCase();
+  // Only extract commit_message_format when a concrete pattern hint exists alongside a requirement keyword.
+  const requiresFormat =
+    lower.includes('commit message must') ||
+    lower.includes('commit message should') ||
+    lower.includes('commit messages must') ||
+    lower.includes('commit messages should');
+  if (!requiresFormat) return rules;
+  // Look for a conventional commit type list or a regex-like pattern.
+  const patternMatch = line.match(/\^?\(?(feat|fix|chore|docs|refactor|test|style)[|)]/i);
+  const pattern = patternMatch
+    ? '^(feat|fix|chore|docs|refactor|test|style)'
+    : '^(feat|fix|chore|docs|refactor|test|style)';
+  if (patternMatch || lower.includes('conventional commit')) {
+    rules.push(createRule(sourceFile, lineNumber, rawLine, line, 'commit_message_format', 'medium', [{ type: 'commit_message_format', pattern }]));
+  }
+  return rules;
 }
 
 function createRuleFactory() {
