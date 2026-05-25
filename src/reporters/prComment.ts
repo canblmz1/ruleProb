@@ -7,9 +7,10 @@ import { BaselineDelta } from '../baseline/compare.js';
 export async function writePrCommentReport(
   results: EvaluationResult[],
   config: Config,
-  delta?: BaselineDelta
+  delta?: BaselineDelta,
+  weights?: Record<string, number>
 ): Promise<string> {
-  const proof = buildReportProofModel(results, config);
+  const proof = buildReportProofModel(results, config, weights);
   const counts = {
     pass: results.filter(r => r.status === 'PASS').length,
     partial: results.filter(r => r.status === 'PARTIAL').length,

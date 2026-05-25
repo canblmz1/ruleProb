@@ -4,8 +4,8 @@ import path from 'path';
 import { buildReportProofModel, getChangedSnippets, resultLimitationMessages } from './proof.js';
 import { BaselineDelta } from '../baseline/compare.js';
 
-export async function writeJsonReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta) {
-  const proof = buildReportProofModel(results, config);
+export async function writeJsonReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta, weights?: Record<string, number>) {
+  const proof = buildReportProofModel(results, config, weights);
 
   const totalCount = results.length;
   const skippedCount = results.filter(r => r.status === 'SKIPPED').length;

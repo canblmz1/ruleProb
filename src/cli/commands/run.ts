@@ -271,12 +271,12 @@ async function executeRun(
       console.log(chalk.green(`\nBaseline updated: ${config.reportDir}/baseline.json`));
     }
 
-    await writeJsonReport(results, config, delta);
-    await writeMarkdownReport(results, config, delta);
-    await writeHtmlReport(results, config, delta);
+    await writeJsonReport(results, config, delta, severityWeights);
+    await writeMarkdownReport(results, config, delta, severityWeights);
+    await writeHtmlReport(results, config, delta, severityWeights);
     const sarifPath = await writeSarifReport(results, config);
     const junitPath = await writeJUnitReport(results, config);
-    const prCommentPath = await writePrCommentReport(results, config, delta);
+    const prCommentPath = await writePrCommentReport(results, config, delta, severityWeights);
 
     console.log(`Reports written:\n- ${config.reportDir}/report.json\n- ${config.reportDir}/report.md\n- ${config.reportDir}/report.html\n- ${sarifPath}\n- ${junitPath}\n- ${prCommentPath}\n`);
 

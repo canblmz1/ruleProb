@@ -42,8 +42,8 @@ async function getChartJsScript(): Promise<string> {
   }
 }
 
-export async function writeHtmlReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta) {
-  const proof = buildReportProofModel(results, config);
+export async function writeHtmlReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta, weights?: Record<string, number>) {
+  const proof = buildReportProofModel(results, config, weights);
   const history = await loadHistory(config);
   const trend = computeTrendSummary(history);
   const chartScript = await getChartJsScript();
