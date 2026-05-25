@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.3.0 - Customizable Scenarios & Scoring
+
+- **Custom severity weights:** Create `.ruleprobe/weights.yaml` to override severity weights (e.g. `severity: {high: 5, medium: 2, low: 1}`). Weights are applied across all report types (JSON, HTML, Markdown, PR comment)
+- **Custom test scenarios:** Create `.ruleprobe/scenarios.yaml` to inject your own test scenarios alongside extracted ones. Each scenario needs `id`, `ruleId`, `title`, `prompt`, and `expectedAssertions`
+- **`--no-custom-scenarios` flag:** Skip loading `.ruleprobe/scenarios.yaml` for a clean baseline run
+
 ## v1.2.0 - Multi-Language Support
 
 - **`--lang` flag:** `ruleprobe run --lang python` (or `go`, `rust`, `node`) activates a language profile that customizes the AI extraction prompt with language-specific package managers, command prefixes, and test runners

@@ -50,6 +50,7 @@ export function register(program: Command): void {
     .option('--fail-on-regression', 'Exit with code 1 if any scenario regressed vs baseline')
     .option('--lang <language>', 'Language profile: node (default), python, go, rust')
     .option('--demo', 'Demo mode: use mock provider with realistic PASS/FAIL mix, no API key needed')
+    .option('--no-custom-scenarios', 'Skip loading .ruleprobe/scenarios.yaml')
     .action(async (dir, options) => {
       const runId = Date.now();
 
@@ -104,7 +105,7 @@ export function register(program: Command): void {
           await writeComparisonReport(allResults, baseConfig, runId);
           return;
         }
-        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode });
+        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode, loadCustomScenarios: options.customScenarios !== false });
       }
 
       await doRun();
@@ -151,7 +152,7 @@ export function register(program: Command): void {
 async function executeRun(
   config: Config,
   providerName: string,
-  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean } = {}
+  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean } = {}
 ): Promise<EvaluationResult[]> {
   console.log(chalk.blue('RuleProbe Runner Started'));
   const files = await discoverInstructions(config);
@@ -167,8 +168,19 @@ async function executeRun(
   const testableRuleCount = rules.filter(r => r.testable).length;
   console.log(`Extracted ${testableRuleCount} testable rules (${rules.length} total).`);
 
-  const scenarios = generateScenarios(rules);
-  console.log(`Generated ${scenarios.length} sandbox scenarios.\n`);
+  const baseScenarios = generateScenarios(rules);
+
+  let allScenarios = baseScenarios;
+  if (opts.loadCustomScenarios !== false) {
+    const { loadCustomScenarios } = await import('../../config/customScenarios.js');
+    const customScenarios = await loadCustomScenarios();
+    if (customScenarios.length > 0) {
+      console.log(`Loaded ${customScenarios.length} custom scenario(s) from .ruleprobe/scenarios.yaml.`);
+    }
+    allScenarios = [...baseScenarios, ...customScenarios];
+  }
+
+  console.log(`Generated ${allScenarios.length} sandbox scenarios.\n`);
 
   console.log(`Running provider: ${providerName}\n`);
 
@@ -195,7 +207,7 @@ async function executeRun(
 
   const results: EvaluationResult[] = [];
 
-  for (const scenario of scenarios) {
+  for (const scenario of allScenarios) {
     const sandboxDir = await createSandbox(scenario);
     const rawProviderResult = await provider.run({ scenario, sandboxDir });
     const providerResult = normalizeProviderResult(rawProviderResult);
@@ -241,6 +253,9 @@ async function executeRun(
     console.log(chalk.yellow(`     Re-run with --provider claude-code or --provider openrouter to evaluate them.\n`));
   }
 
+  const { loadSeverityWeights } = await import('../../config/weights.js');
+  const severityWeights = await loadSeverityWeights();
+
   if (opts.writeReports) {
     let delta: BaselineDelta | undefined;
     if (config.baseline) {
@@ -256,18 +271,18 @@ async function executeRun(
       console.log(chalk.green(`\nBaseline updated: ${config.reportDir}/baseline.json`));
     }
 
-    await writeJsonReport(results, config, delta);
-    await writeMarkdownReport(results, config, delta);
-    await writeHtmlReport(results, config, delta);
+    await writeJsonReport(results, config, delta, severityWeights);
+    await writeMarkdownReport(results, config, delta, severityWeights);
+    await writeHtmlReport(results, config, delta, severityWeights);
     const sarifPath = await writeSarifReport(results, config);
     const junitPath = await writeJUnitReport(results, config);
-    const prCommentPath = await writePrCommentReport(results, config, delta);
+    const prCommentPath = await writePrCommentReport(results, config, delta, severityWeights);
 
     console.log(`Reports written:\n- ${config.reportDir}/report.json\n- ${config.reportDir}/report.md\n- ${config.reportDir}/report.html\n- ${sarifPath}\n- ${junitPath}\n- ${prCommentPath}\n`);
 
     const trend = await appendHistory({
       score: finalScore,
-      weightedScore: buildReportProofModel(results, config).weightedScore,
+      weightedScore: buildReportProofModel(results, config, severityWeights).weightedScore,
       totalRules: results.length,
       passed: results.filter(r => r.status === 'PASS').length,
       partial: results.filter(r => r.status === 'PARTIAL').length,
@@ -419,16 +434,15 @@ async function writeComparisonReport(
 }
 
 // Avoid circular import: inline lightweight proof model builder for history
-function buildReportProofModel(results: EvaluationResult[], config: Config) {
+function buildReportProofModel(results: EvaluationResult[], _config: Config, weights: Record<string, number> = { high: 3, medium: 2, low: 1 }) {
   const scorable = results.filter(r => r.status !== 'SKIPPED');
   const overallScore = scorable.length > 0
     ? Math.round(scorable.reduce((acc, r) => acc + r.score, 0) / scorable.length)
     : 0;
-  const weights: Record<string, number> = { high: 3, medium: 2, low: 1 };
   let weightedSum = 0;
   let totalWeight = 0;
   for (const r of scorable) {
-    const w = weights[r.severity] ?? weights.medium;
+    const w = weights[r.severity] ?? weights['medium'] ?? 2;
     weightedSum += r.score * w;
     totalWeight += w;
   }

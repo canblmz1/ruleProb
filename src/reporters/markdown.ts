@@ -4,8 +4,8 @@ import path from 'path';
 import { buildReportProofModel, formatChangedFiles, formatSource, getChangedSnippets, resultLimitationMessages, CrossTab, CoverageModel } from './proof.js';
 import { BaselineDelta } from '../baseline/compare.js';
 
-export async function writeMarkdownReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta) {
-  const proof = buildReportProofModel(results, config);
+export async function writeMarkdownReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta, weights?: Record<string, number>) {
+  const proof = buildReportProofModel(results, config, weights);
 
   const lines = [
     '# RuleProbe Report',
