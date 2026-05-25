@@ -336,7 +336,7 @@ function buildRepairPrompt(rawSnippet: string): string {
 
 const REQUIRED_RULE_FIELDS = ['id', 'text', 'category', 'testable', 'severity'] as const;
 
-function preFilterRules(candidates: any[], providerLabel: string, debug: boolean): any[] {
+function preFilterRules(candidates: any[], providerLabel: string, debug: boolean | undefined): any[] {
   const filtered: any[] = [];
   let rejectedCount = 0;
 
