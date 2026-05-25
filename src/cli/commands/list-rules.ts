@@ -22,6 +22,7 @@ export function register(program: Command): void {
     .option('--explain', 'Show extraction detail: assertions, source line, and severity for each rule')
     .option('--no-cache', 'Disable AI extraction cache')
     .option('--provider-timeout-ms <ms>', 'Override the default provider extraction timeout')
+    .option('--lang <language>', 'Language profile: node (default), python, go, rust')
     .action(async (dir, options) => {
       const config = await loadConfig();
       if (options.extractor) config.extractor = options.extractor;
@@ -30,6 +31,12 @@ export function register(program: Command): void {
       if (options.debugExtractor) config.debugExtractor = true;
       if (options.cache === false) config.useExtractionCache = false;
       if (options.providerTimeoutMs) config.providerTimeoutMs = parseInt(options.providerTimeoutMs, 10);
+      const VALID_LANGS = ['node', 'python', 'go', 'rust'];
+      if (options.lang && !VALID_LANGS.includes(options.lang)) {
+        console.error(`Unknown language profile "${options.lang}". Valid options: ${VALID_LANGS.join(', ')}`);
+        process.exit(1);
+      }
+      if (options.lang) config.lang = options.lang;
 
       const files = await loadInstructionFilesForReadOnlyCommand(dir, config);
       if (options.compare) {
