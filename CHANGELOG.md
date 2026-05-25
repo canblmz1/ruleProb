@@ -1,5 +1,12 @@
 # Release Notes
 
+## v1.7.0 - Community & Growth Tooling
+
+- **`ruleprobe feedback`:** New command — prints GitHub Issues link, CONTRIBUTING.md reference, and a repo star nudge. Run it anytime to get help or share feedback.
+- **`ruleprobe upgrade`:** New command — fetches latest version from npm registry and tells you whether you're up to date. Times out gracefully if offline.
+- **`ruleprobe init --with-ci`:** New flag — scaffolds `.github/workflows/ruleprobe-compliance.yml` in the target directory alongside `ruleprobe.config.json`. Ready for GitHub Actions MR checks out of the box.
+- **`ruleprobe init --provider <name>`:** New flag — sets the default provider in the generated config (default: mock). Use `--provider gemini` for a real-evaluation config.
+
 ## v1.6.0 - Native Providers & GitLab CI
 
 - **`anthropic` provider:** Direct Anthropic Messages API — requires `ANTHROPIC_API_KEY`. Default model `claude-3-5-haiku-20241022`. No new npm deps (raw fetch). Use with `--provider anthropic`.
