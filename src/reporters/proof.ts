@@ -74,17 +74,18 @@ export function buildCoverageModel(results: EvaluationResult[]): CoverageModel {
   return { totalScenarios, evaluated, skipped, effectivePct };
 }
 
-export function buildReportProofModel(results: EvaluationResult[], config: Config): ReportProofModel {
+export function buildReportProofModel(results: EvaluationResult[], config: Config, weights?: Record<string, number>): ReportProofModel {
   const scorable = results.filter(r => r.status !== 'SKIPPED');
   const overallScore = scorable.length > 0
     ? Math.round(scorable.reduce((acc, result) => acc + result.score, 0) / scorable.length)
     : 0;
   const finalScore = isNaN(overallScore) ? 0 : overallScore;
 
-  const scoreBreakdown = computeWeightedScore(results);
+  const effectiveWeights = weights ?? SEVERITY_WEIGHTS;
+  const scoreBreakdown = computeWeightedScore(results, effectiveWeights);
   const coverage = buildCoverageModel(results);
   const failureGroups = groupFailures(results);
-  const crossTab = buildCrossTab(results);
+  const crossTab = buildCrossTab(results, effectiveWeights);
   const knownLimitations = collectLimitationNotes(results, config);
   const shareBlock = buildShareBlock(results, finalScore, scoreBreakdown, knownLimitations, config);
 
@@ -100,12 +101,12 @@ export function buildReportProofModel(results: EvaluationResult[], config: Confi
   };
 }
 
-function computeWeightedScore(results: EvaluationResult[]): ScoreBreakdown {
+function computeWeightedScore(results: EvaluationResult[], weights: Record<string, number> = SEVERITY_WEIGHTS): ScoreBreakdown {
   const scorable = results.filter(r => r.status !== 'SKIPPED');
   let weightedSum = 0;
   let totalWeight = 0;
   for (const result of scorable) {
-    const weight = SEVERITY_WEIGHTS[result.severity] ?? SEVERITY_WEIGHTS.medium;
+    const weight = weights[result.severity] ?? weights['medium'] ?? SEVERITY_WEIGHTS.medium;
     weightedSum += result.score * weight;
     totalWeight += weight;
   }
@@ -118,7 +119,7 @@ function computeWeightedScore(results: EvaluationResult[]): ScoreBreakdown {
     weighted,
     totalWeight,
     weightedSum,
-    weights: { ...SEVERITY_WEIGHTS }
+    weights: { ...weights }
   };
 }
 
@@ -147,7 +148,7 @@ function emptyCell(): CrossTabCell {
   return { pass: 0, partial: 0, fail: 0, skipped: 0, weighted: 0 };
 }
 
-function buildCrossTab(results: EvaluationResult[]): CrossTab {
+function buildCrossTab(results: EvaluationResult[], weights: Record<string, number> = SEVERITY_WEIGHTS): CrossTab {
   const severities = ['high', 'medium', 'low'];
   const rowMap = new Map<string, CrossTabRow>();
   const totals: Record<string, CrossTabCell> = {};
@@ -168,7 +169,7 @@ function buildCrossTab(results: EvaluationResult[]): CrossTab {
     else if (result.status === 'PARTIAL') { cell.partial++; totalCell.partial++; }
     else if (result.status === 'FAIL') { cell.fail++; totalCell.fail++; }
     else if (result.status === 'SKIPPED') { cell.skipped++; totalCell.skipped++; }
-    const weight = SEVERITY_WEIGHTS[severity] ?? SEVERITY_WEIGHTS.medium;
+    const weight = weights[severity] ?? weights['medium'] ?? SEVERITY_WEIGHTS.medium;
     cell.weighted += result.score * weight;
     totalCell.weighted += result.score * weight;
   }
