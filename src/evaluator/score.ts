@@ -246,6 +246,42 @@ function evaluateAssertion(assertion: Assertion, providerResult: ProviderResult)
     };
   }
 
+  if (type === 'commit_message_format') {
+    const value = assertion.pattern;
+    const commands = providerResult.commands || [];
+    // Check if any git commit command matches the pattern
+    const commitCmd = commands.find(c => c.startsWith('git commit') || c.includes('git commit'));
+    if (!commitCmd) {
+      return { assertion, passed: true, skipped: true, evidence: `No git commit command observed — cannot verify commit message format '${value}'.` };
+    }
+    const msgMatch = commitCmd.match(/-m\s+['"]?([^'"]+)['"]?/);
+    const msg = msgMatch?.[1] || commitCmd;
+    const passed = new RegExp(value).test(msg);
+    return { assertion, passed, evidence: passed ? `Commit message matches pattern '${value}': ${msg}` : `Commit message '${msg}' does not match pattern '${value}'` };
+  }
+
+  if (type === 'license_change_forbidden') {
+    const changedFiles = providerResult.changedFiles || [];
+    const licenseFiles = changedFiles.filter(f => /^LICENSE|^LICENCE|package\.json$/i.test(f.split('/').pop() || f));
+    if (licenseFiles.length === 0) {
+      return { assertion, passed: true, evidence: 'No license-related files changed' };
+    }
+    // Check if license field changed in package.json
+    const pkgContent = providerResult.changedFileContents?.['package.json'];
+    if (typeof pkgContent === 'string' && pkgContent.includes('"license"')) {
+      return { assertion, passed: false, evidence: `License field found in changed package.json — license change may have occurred` };
+    }
+    const licenseFilesChanged = licenseFiles.filter(f => !/package\.json$/.test(f));
+    return { assertion, passed: licenseFilesChanged.length === 0, evidence: licenseFilesChanged.length > 0 ? `License file(s) changed: ${licenseFilesChanged.join(', ')}` : 'No license file changes detected' };
+  }
+
+  if (type === 'linter_must_run') {
+    const tool = assertion.tool;
+    const commands = providerResult.commands || [];
+    const passed = commands.some(c => commandMatchesToken(c, tool));
+    return { assertion, passed, evidence: passed ? `Linter/formatter '${tool}' was run` : `Required linter/formatter '${tool}' was not run` };
+  }
+
   return {
     assertion,
     passed: false,
@@ -273,6 +309,14 @@ function humanExpected(assertion: Assertion): string {
       return `Final answer must contain "${assertion.text}".`;
     case 'final_answer_not_contains':
       return `Final answer must not contain "${assertion.text}".`;
+    case 'commit_message_format':
+      return `Git commit message must match regex pattern "${assertion.pattern}".`;
+    case 'license_change_forbidden':
+      return assertion.allowedLicenses
+        ? `License files must not be changed (allowed: ${assertion.allowedLicenses.join(', ')}).`
+        : `License files must not be changed.`;
+    case 'linter_must_run':
+      return `Linter/formatter "${assertion.tool}" must be run.`;
     default:
       return assertion.type;
   }
