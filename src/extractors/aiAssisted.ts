@@ -3,6 +3,7 @@ import { Rule, CandidateRule, Config } from '../types/index.js';
 import { validateCandidate } from './validateCandidate.js';
 import { getEnv } from '../config/env.js';
 import { runDeterministicExtraction } from './deterministic.js';
+import { resolveLanguageProfile, LanguageProfile } from '../lang-profiles/index.js';
 
 type ProviderKind = 'gemini' | 'openrouter' | 'opencode-go';
 
@@ -49,17 +50,20 @@ export async function runAIAssistedExtraction(files: { path: string, content: st
 
   const timeoutMs = config.providerTimeoutMs || Number(getEnv('RULEPROBE_PROVIDER_TIMEOUT_MS')) || 60000;
 
+  const langProfile = resolveLanguageProfile(config.lang);
+
   if (debug) {
     console.log(`\n--- ${profile.label} EXTRACTOR DEBUG ---`);
     console.log(`${profile.label} API key visible: ${profile.apiKey ? 'yes' : 'no'}`);
     console.log(`${profile.label} model: ${profile.model}`);
     console.log(`${profile.label} base URL: ${profile.baseUrl}`);
     console.log(`${profile.label} timeout (ms): ${timeoutMs}`);
+    console.log(`Language profile: ${langProfile.label} (${langProfile.id})`);
     console.log('---');
   }
 
   for (const file of files) {
-    const systemPrompt = buildExtractionPrompt(file.path);
+    const systemPrompt = buildExtractionPrompt(file.path, langProfile);
 
     let requestSent = false;
     let responseReceived = false;
@@ -360,13 +364,17 @@ function preFilterRules(candidates: any[], providerLabel: string, debug: boolean
   return filtered;
 }
 
-function buildExtractionPrompt(filePath: string): string {
+function buildExtractionPrompt(filePath: string, langProfile?: LanguageProfile): string {
   return `You are RuleProbe's instruction extraction engine.
 Your job is to extract only concrete, testable rules from AI coding instruction files.
 
+Language context: ${langProfile?.label ?? 'Node.js / TypeScript'}
+Package managers: ${(langProfile?.packageManagers ?? ['pnpm', 'npm', 'yarn', 'bun']).join(', ')}
+Commands to recognize: ${(langProfile?.commandPrefixes ?? []).join(', ')}
+
 Do not classify every backtick token as a command.
 A token is a command only if it starts with an executable such as:
-pnpm, npm, yarn, bun, npx, node, vitest, playwright, docker, git, bazel, cargo, go, python, pytest, eslint, biome, tsc, turbo, nx.
+${[...(langProfile?.commandPrefixes ?? ['pnpm', 'npm', 'yarn', 'bun', 'npx', 'node']), 'docker', 'git', 'bazel'].join(', ')}.
 
 Backtick tokens like Uint8Array, Buffer, import type, node:crypto, getTestInstance(), testWith, feat(scope):, docs:, chore: are code patterns or informational, not commands.
 

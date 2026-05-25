@@ -124,6 +124,8 @@ export interface Config {
   regressionThreshold?: number;
   /** Print per-file extraction diagnostics */
   debugExtractor?: boolean;
+  /** Language profile for AI extraction: node (default), python, go, rust */
+  lang?: string;
   /** Set to false to disable AI extraction cache (default: true) */
   useExtractionCache?: boolean;
   /** Save current run as baseline, or compare against existing baseline */

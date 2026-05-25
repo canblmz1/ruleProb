@@ -48,6 +48,7 @@ export function register(program: Command): void {
     .option('--badge', 'Generate SVG score and trend badges')
     .option('--baseline', 'Save or compare against a baseline run')
     .option('--fail-on-regression', 'Exit with code 1 if any scenario regressed vs baseline')
+    .option('--lang <language>', 'Language profile: node (default), python, go, rust')
     .option('--demo', 'Demo mode: use mock provider with realistic PASS/FAIL mix, no API key needed')
     .action(async (dir, options) => {
       const runId = Date.now();
@@ -76,6 +77,7 @@ export function register(program: Command): void {
       if (options.keepSandbox) baseConfig.keepSandbox = options.keepSandbox;
       if (options.baseline) baseConfig.baseline = true;
       if (options.failOnRegression) baseConfig.failOnRegression = true;
+      if (options.lang) baseConfig.lang = options.lang;
 
       const providerList = options.providers
         ? String(options.providers).split(/[,\s]+/).map((p: string) => p.trim()).filter(Boolean)
