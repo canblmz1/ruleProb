@@ -8,5 +8,8 @@ export { MockProvider } from './providers/mock.js';
 export { GeminiProvider } from './providers/gemini.js';
 export { OpenRouterProvider } from './providers/openrouter.js';
 export { DryRunProvider } from './providers/dryRun.js';
+export { AnthropicProvider } from './providers/anthropic.js';
+export { OpenAIProvider } from './providers/openai.js';
+export { OllamaProvider } from './providers/ollama.js';
 export { normalizeProviderResult } from './providers/normalize.js';
 export { evaluateResult } from './evaluator/score.js';

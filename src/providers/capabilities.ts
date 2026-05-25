@@ -76,6 +76,39 @@ export const providerCapabilities: ProviderCapability[] = [
     localCliExecution: 'Yes',
     rateLimitSensitivity: 'Depends on local account',
     notes: 'Runs the installed Claude Code CLI in a sandbox; not apples-to-apples with action-bridge providers.'
+  },
+  {
+    provider: 'anthropic',
+    extraction: 'Yes',
+    structuredActions: 'Yes',
+    runtimeExecution: 'Sandboxed action bridge',
+    deterministicFallback: 'Yes for extraction',
+    rawResponseDebug: 'Yes',
+    localCliExecution: 'No',
+    rateLimitSensitivity: 'Medium',
+    notes: 'Direct Anthropic Messages API. Requires ANTHROPIC_API_KEY. Default model: claude-3-5-haiku-20241022.'
+  },
+  {
+    provider: 'openai',
+    extraction: 'Yes',
+    structuredActions: 'Yes',
+    runtimeExecution: 'Sandboxed action bridge',
+    deterministicFallback: 'Yes for extraction',
+    rawResponseDebug: 'Yes',
+    localCliExecution: 'No',
+    rateLimitSensitivity: 'Medium',
+    notes: 'Direct OpenAI Chat Completions API. Requires OPENAI_API_KEY. Default model: gpt-4o-mini.'
+  },
+  {
+    provider: 'ollama',
+    extraction: 'Yes',
+    structuredActions: 'Yes',
+    runtimeExecution: 'Sandboxed action bridge',
+    deterministicFallback: 'Yes for extraction',
+    rawResponseDebug: 'Yes',
+    localCliExecution: 'No',
+    rateLimitSensitivity: 'None (local)',
+    notes: 'Local Ollama instance. No API key needed. Set OLLAMA_BASE_URL (default: http://localhost:11434) and --model.'
   }
 ];
 

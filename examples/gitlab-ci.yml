@@ -1,0 +1,48 @@
+# RuleProbe GitLab CI template
+# Copy this file to your project root as .gitlab-ci.yml (or include it from an existing pipeline)
+#
+# Required variables (set in GitLab Settings → CI/CD → Variables):
+#   GEMINI_API_KEY  — for real agent evaluation (or use OPENAI_API_KEY / ANTHROPIC_API_KEY)
+#
+# Usage with mock provider (no API key needed, good for PR checks):
+#   Change --provider mock to --provider gemini for real evaluation
+
+stages:
+  - compliance
+
+ruleprobe:
+  stage: compliance
+  image: node:20-slim
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  variables:
+    FAIL_BELOW: "70"
+  script:
+    - npm install -g ruleprobe-ai
+    - ruleprobe run . --provider mock --fail-below $FAIL_BELOW
+  artifacts:
+    when: always
+    paths:
+      - .ruleprobe/report.md
+      - .ruleprobe/report.html
+      - .ruleprobe/report.json
+    expire_in: 30 days
+  allow_failure: false
+
+# Optional: real Gemini evaluation on default branch only
+ruleprobe-real:
+  stage: compliance
+  image: node:20-slim
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  script:
+    - npm install -g ruleprobe-ai
+    - ruleprobe run . --provider gemini --fail-below $FAIL_BELOW
+  artifacts:
+    when: always
+    paths:
+      - .ruleprobe/report.md
+      - .ruleprobe/report.json
+    expire_in: 30 days

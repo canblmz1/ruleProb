@@ -1,5 +1,14 @@
 # Release Notes
 
+## v1.6.0 - Native Providers & GitLab CI
+
+- **`anthropic` provider:** Direct Anthropic Messages API — requires `ANTHROPIC_API_KEY`. Default model `claude-3-5-haiku-20241022`. No new npm deps (raw fetch). Use with `--provider anthropic`.
+- **`openai` provider:** Direct OpenAI Chat Completions API with `response_format: json_object` — requires `OPENAI_API_KEY`. Default model `gpt-4o-mini`. Use with `--provider openai`.
+- **`ollama` provider:** Local Ollama instance — no API key needed. Override base URL with `OLLAMA_BASE_URL` (default: `http://localhost:11434`). Use with `--provider ollama --model llama3.2`.
+- **GitLab CI template:** `examples/gitlab-ci.yml` — drop-in template for GitLab Merge Request and default-branch pipelines. Includes manual real-provider job.
+- **Provider capability matrix updated:** `ruleprobe providers` now lists anthropic, openai, ollama with rate-limit sensitivity and notes.
+- **Public API:** `AnthropicProvider`, `OpenAIProvider`, `OllamaProvider` exported from `src/index.ts` for programmatic use.
+
 ## v1.5.0 - Rich Reports: Fix Suggestions & Diff Snippets
 
 - **Fix suggestions:** Every FAIL/PARTIAL result now includes a `suggestion` field with a human-readable hint pointing at the exact assertion that failed (e.g. "Run `eslint` before committing", "Use `pnpm` instead of `npm`", "Commit message must match `feat|fix|chore`"). Shown in Markdown as `> **Fix:** …`
