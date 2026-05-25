@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.4.0 - New Rule Categories
+
+- **`commit_message_format`:** Now testable — checks that git commit messages match a regex pattern (e.g. conventional commit `feat|fix|chore`). SKIPs when no commit command is observed
+- **`license_change_forbidden`:** New category — fails if LICENSE file or `package.json` license field is changed. Extracted from lines like "do not change the license", "license must remain MIT"
+- **`linter_must_run`:** New category — checks that a specific linter/formatter tool (eslint, biome, ruff, clippy, etc.) was invoked. Extracted from lines like "always run eslint before committing"
+
 ## v1.3.0 - Customizable Scenarios & Scoring
 
 - **Custom severity weights:** Create `.ruleprobe/weights.yaml` to override severity weights (e.g. `severity: {high: 5, medium: 2, low: 1}`). Weights are applied across all report types (JSON, HTML, Markdown, PR comment)

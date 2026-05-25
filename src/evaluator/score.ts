@@ -262,7 +262,7 @@ function evaluateAssertion(assertion: Assertion, providerResult: ProviderResult)
 
   if (type === 'license_change_forbidden') {
     const changedFiles = providerResult.changedFiles || [];
-    const licenseFiles = changedFiles.filter(f => /^LICENSE|^LICENCE|package\.json$/i.test(f.split('/').pop() || f));
+    const licenseFiles = changedFiles.filter(f => /^(LICENSE|LICENCE)(\.txt|\.md)?$|^package\.json$/i.test(f.split('/').pop() || f));
     if (licenseFiles.length === 0) {
       return { assertion, passed: true, evidence: 'No license-related files changed' };
     }
