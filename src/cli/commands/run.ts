@@ -77,6 +77,11 @@ export function register(program: Command): void {
       if (options.keepSandbox) baseConfig.keepSandbox = options.keepSandbox;
       if (options.baseline) baseConfig.baseline = true;
       if (options.failOnRegression) baseConfig.failOnRegression = true;
+      const VALID_LANGS = ['node', 'python', 'go', 'rust'];
+      if (options.lang && !VALID_LANGS.includes(options.lang)) {
+        console.error(`Unknown language profile "${options.lang}". Valid options: ${VALID_LANGS.join(', ')}`);
+        process.exit(1);
+      }
       if (options.lang) baseConfig.lang = options.lang;
 
       const providerList = options.providers

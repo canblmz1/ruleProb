@@ -31,6 +31,11 @@ export function register(program: Command): void {
       if (options.debugExtractor) config.debugExtractor = true;
       if (options.cache === false) config.useExtractionCache = false;
       if (options.providerTimeoutMs) config.providerTimeoutMs = parseInt(options.providerTimeoutMs, 10);
+      const VALID_LANGS = ['node', 'python', 'go', 'rust'];
+      if (options.lang && !VALID_LANGS.includes(options.lang)) {
+        console.error(`Unknown language profile "${options.lang}". Valid options: ${VALID_LANGS.join(', ')}`);
+        process.exit(1);
+      }
       if (options.lang) config.lang = options.lang;
 
       const files = await loadInstructionFilesForReadOnlyCommand(dir, config);

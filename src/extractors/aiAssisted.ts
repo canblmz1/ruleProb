@@ -364,17 +364,18 @@ function preFilterRules(candidates: any[], providerLabel: string, debug: boolean
   return filtered;
 }
 
-function buildExtractionPrompt(filePath: string, langProfile?: LanguageProfile): string {
+function buildExtractionPrompt(filePath: string, langProfile: LanguageProfile): string {
+  const allCommandPrefixes = [...langProfile.commandPrefixes, 'docker', 'git', 'bazel']
+    .filter((v, i, a) => a.indexOf(v) === i);
   return `You are RuleProbe's instruction extraction engine.
 Your job is to extract only concrete, testable rules from AI coding instruction files.
 
-Language context: ${langProfile?.label ?? 'Node.js / TypeScript'}
-Package managers: ${(langProfile?.packageManagers ?? ['pnpm', 'npm', 'yarn', 'bun']).join(', ')}
-Commands to recognize: ${(langProfile?.commandPrefixes ?? []).join(', ')}
+Language context: ${langProfile.label}
+Package managers: ${langProfile.packageManagers.join(', ')}
 
 Do not classify every backtick token as a command.
 A token is a command only if it starts with an executable such as:
-${[...(langProfile?.commandPrefixes ?? ['pnpm', 'npm', 'yarn', 'bun', 'npx', 'node']), 'docker', 'git', 'bazel'].join(', ')}.
+${allCommandPrefixes.join(', ')}.
 
 Backtick tokens like Uint8Array, Buffer, import type, node:crypto, getTestInstance(), testWith, feat(scope):, docs:, chore: are code patterns or informational, not commands.
 

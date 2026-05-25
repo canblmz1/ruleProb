@@ -83,7 +83,8 @@ export async function runAIAssistedExtractionCached(
 
   for (const file of files) {
     const fileHash = crypto.createHash('sha256').update(file.content).digest('hex').slice(0, 32);
-    const key = `${provider}_${sanitizeForFilename(model)}_${mode}_${PROMPT_VERSION}_${fileHash}.json`;
+    const lang = config.lang ?? 'node';
+    const key = `${provider}_${sanitizeForFilename(model)}_${mode}_${lang}_${PROMPT_VERSION}_${fileHash}.json`;
     const cachePath = path.join(cacheDir, key);
     fileToCachePath.set(file.path, cachePath);
 
