@@ -25,6 +25,10 @@ export async function runAIAssistedExtraction(files: { path: string, content: st
   const provider = config.provider as ProviderKind | string | undefined;
   const debug = config.debugExtractor;
 
+  // Parse success rate tracking
+  let filesAttempted = 0;
+  let filesParsedSuccessfully = 0;
+
   if (!provider || !SUPPORTED_PROVIDERS.includes(provider as ProviderKind)) {
     if (debug) {
       console.log('\n--- EXTRACTOR DEBUG ---');
@@ -63,6 +67,9 @@ export async function runAIAssistedExtraction(files: { path: string, content: st
     let parseSuccess = false;
     let usedFallback = false;
     let localTimeoutFired = false;
+    let retryAttempted = false;
+
+    filesAttempted++;
 
     try {
       const controller = new AbortController();
@@ -98,6 +105,56 @@ export async function runAIAssistedExtraction(files: { path: string, content: st
       }
 
       if (!parsed.success) {
+        // Attempt ONE retry with a repair prompt
+        retryAttempted = true;
+        const rawSnippet = sanitizeProviderText(parsed.preview).slice(0, 1000);
+        const repairSystemPrompt = buildRepairPrompt(rawSnippet);
+
+        try {
+          const retryController = new AbortController();
+          const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs);
+
+          const retryResponse = await dispatchExtractionRequest(profile, repairSystemPrompt, file.content, retryController.signal);
+          clearTimeout(retryTimeoutId);
+
+          const retryJsonText = await retryResponse.text();
+          const retryParsed = parseProviderRulesPayload(retryJsonText, profile.kind);
+
+          if (retryParsed.success) {
+            if (debug) {
+              console.log(`${profile.label} retry attempted: yes`);
+              console.log(`${profile.label} retry success: yes`);
+            }
+
+            // Pre-filter: reject rules missing required fields before validateCandidate
+            const preFilteredRules = preFilterRules(retryParsed.block?.rules ?? [], profile.label, debug);
+
+            for (const candidate of preFilteredRules) {
+              const validation = validateCandidate(candidate);
+              if (validation.valid) {
+                rules.push(candidate);
+              } else {
+                rejectedCandidates.push({ candidate, reason: validation.reason || 'Invalid' });
+              }
+            }
+
+            filesParsedSuccessfully++;
+            if (debug) console.log(`${profile.label} fallback used: no`);
+            continue;
+          }
+
+          // Retry also failed — fall through to fallback
+          if (debug) {
+            console.log(`${profile.label} retry attempted: yes`);
+            console.log(`${profile.label} retry success: no`);
+          }
+        } catch (retryErr) {
+          if (debug) {
+            console.log(`${profile.label} retry attempted: yes`);
+            console.log(`${profile.label} retry success: no (error: ${retryErr instanceof Error ? retryErr.message : String(retryErr)})`);
+          }
+        }
+
         await saveRawExtractorResponse(profile.rawFile, jsonText);
         usedFallback = true;
         console.warn(`AI extractor could not parse JSON payload (${profile.label}, http ${httpStatus}). Raw response saved to ${profile.rawFile}. Falling back to deterministic extraction.`);
@@ -108,17 +165,23 @@ export async function runAIAssistedExtraction(files: { path: string, content: st
         continue;
       }
 
-      if (Array.isArray(parsed.block?.rules)) {
-        for (const candidate of parsed.block.rules) {
-          const validation = validateCandidate(candidate);
-          if (validation.valid) {
-            rules.push(candidate);
-          } else {
-            rejectedCandidates.push({ candidate, reason: validation.reason || 'Invalid' });
-          }
+      if (debug && !retryAttempted) {
+        console.log(`${profile.label} retry attempted: no`);
+      }
+
+      // Pre-filter: reject rules missing required fields before validateCandidate
+      const preFilteredRules = preFilterRules(parsed.block?.rules ?? [], profile.label, debug);
+
+      for (const candidate of preFilteredRules) {
+        const validation = validateCandidate(candidate);
+        if (validation.valid) {
+          rules.push(candidate);
+        } else {
+          rejectedCandidates.push({ candidate, reason: validation.reason || 'Invalid' });
         }
       }
 
+      filesParsedSuccessfully++;
       if (debug) console.log(`${profile.label} fallback used: ${usedFallback ? 'yes' : 'no'}`);
     } catch (e) {
       const isAbort = e instanceof Error && e.name === 'AbortError';
@@ -146,6 +209,7 @@ export async function runAIAssistedExtraction(files: { path: string, content: st
   }
 
   if (debug) {
+    console.log(`${profile.label} parse success rate: ${filesParsedSuccessfully}/${filesAttempted} files`);
     console.log('------------------------------\n');
     if (rejectedCandidates.length > 0) {
       console.log('Rejected AI extraction candidates:');
@@ -264,6 +328,36 @@ async function dispatchExtractionRequest(profile: ProviderProfile, systemPrompt:
     }),
     signal
   });
+}
+
+function buildRepairPrompt(rawSnippet: string): string {
+  return `Your previous response could not be parsed as valid JSON. The raw text received was:\n\n${rawSnippet}\n\nPlease respond with ONLY valid JSON matching the schema:\n\n{"rules": [{"id": "rule-1", "text": "...", "category": "...", "testable": true, "severity": "medium", "sourceFile": "...", "lineNumber": 1, "assertions": [], "reason": ""}]}\n\nNo explanation, no markdown fences, just the JSON object.`;
+}
+
+const REQUIRED_RULE_FIELDS = ['id', 'text', 'category', 'testable', 'severity'] as const;
+
+function preFilterRules(candidates: any[], providerLabel: string, debug: boolean): any[] {
+  const filtered: any[] = [];
+  let rejectedCount = 0;
+
+  for (const rule of candidates) {
+    if (!rule || typeof rule !== 'object') {
+      rejectedCount++;
+      continue;
+    }
+    const missingFields = REQUIRED_RULE_FIELDS.filter(field => !(field in rule));
+    if (missingFields.length > 0) {
+      rejectedCount++;
+      continue;
+    }
+    filtered.push(rule);
+  }
+
+  if (debug && rejectedCount > 0) {
+    console.log(`${providerLabel} pre-filter: rejected ${rejectedCount} rule(s) missing required fields (id/text/category/testable/severity)`);
+  }
+
+  return filtered;
 }
 
 function buildExtractionPrompt(filePath: string): string {
