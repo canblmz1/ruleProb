@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.5.0 - Rich Reports: Fix Suggestions & Diff Snippets
+
+- **Fix suggestions:** Every FAIL/PARTIAL result now includes a `suggestion` field with a human-readable hint pointing at the exact assertion that failed (e.g. "Run `eslint` before committing", "Use `pnpm` instead of `npm`", "Commit message must match `feat|fix|chore`"). Shown in Markdown as `> **Fix:** …`
+- **Changed content snippets:** Markdown report now renders a `Changed Content Snippets` block per FAIL/PARTIAL result showing the relevant diff lines from `changedFileContents` — makes it easy to see what the agent actually wrote vs what the rule required
+- **`suggestion` on `EvaluationResult`:** New optional field, populated by `buildSuggestion()` in `src/evaluator/score.ts`. All 13 assertion types have tailored suggestion text
+
 ## v1.4.0 - New Rule Categories
 
 - **`commit_message_format`:** Now testable — checks that git commit messages match a regex pattern (e.g. conventional commit `feat|fix|chore`). SKIPs when no commit command is observed

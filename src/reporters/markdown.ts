@@ -145,15 +145,6 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
       }
       lines.push('');
     }
-    if ((result.status === 'FAIL' || result.status === 'PARTIAL') && result.providerResult.changedFileContents && Object.keys(result.providerResult.changedFileContents).length > 0 && snippets.length > 0) {
-      lines.push('**Changed files:**');
-      for (const snippet of snippets) {
-        lines.push('```');
-        lines.push(`${snippet.file}: ${snippet.snippet}`);
-        lines.push('```');
-      }
-      lines.push('');
-    }
   }
 
   await fs.ensureDir(config.reportDir);
