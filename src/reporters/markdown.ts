@@ -130,6 +130,10 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
     lines.push(result.evidence);
     lines.push('```');
     lines.push('');
+    if ((result.status === 'FAIL' || result.status === 'PARTIAL') && result.suggestion) {
+      lines.push(`> **Fix:** ${result.suggestion}`);
+      lines.push('');
+    }
     const snippets = getChangedSnippets(result);
     if (snippets.length > 0) {
       lines.push('Changed Content Snippets:');
