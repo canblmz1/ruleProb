@@ -130,6 +130,10 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
     lines.push(result.evidence);
     lines.push('```');
     lines.push('');
+    if ((result.status === 'FAIL' || result.status === 'PARTIAL') && result.suggestion) {
+      lines.push(`> **Fix:** ${result.suggestion}`);
+      lines.push('');
+    }
     const snippets = getChangedSnippets(result);
     if (snippets.length > 0) {
       lines.push('Changed Content Snippets:');
@@ -137,6 +141,15 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
         lines.push(`- ${snippet.file}`);
         lines.push('```text');
         lines.push(snippet.snippet);
+        lines.push('```');
+      }
+      lines.push('');
+    }
+    if ((result.status === 'FAIL' || result.status === 'PARTIAL') && result.providerResult.changedFileContents && Object.keys(result.providerResult.changedFileContents).length > 0 && snippets.length > 0) {
+      lines.push('**Changed files:**');
+      for (const snippet of snippets) {
+        lines.push('```');
+        lines.push(`${snippet.file}: ${snippet.snippet}`);
         lines.push('```');
       }
       lines.push('');

@@ -78,6 +78,9 @@ export async function evaluateResult(scenario: Scenario, providerResult: Provide
       ? `Execution Error: ${rawOutput.split('\n').pop()}`
       : (actualList || 'Provider completed execution');
 
+  const firstFailed = assertionResults.find(r => !r.passed && !r.skipped);
+  const suggestion = firstFailed ? buildSuggestion(firstFailed.assertion, providerResult) : undefined;
+
   return {
     scenario,
     providerResult,
@@ -94,7 +97,8 @@ export async function evaluateResult(scenario: Scenario, providerResult: Provide
     category: scenario.ruleCategory,
     sourceFile: scenario.sourceFile,
     sourceLine: scenario.sourceLine,
-    ruleText: scenario.ruleText
+    ruleText: scenario.ruleText,
+    suggestion
   };
 }
 
@@ -287,6 +291,37 @@ function evaluateAssertion(assertion: Assertion, providerResult: ProviderResult)
     passed: false,
     evidence: `Unknown assertion type '${(assertion as { type: string }).type}' — treated as FAIL (no matching evaluator)`
   };
+}
+
+function buildSuggestion(assertion: Assertion, _providerResult: ProviderResult): string | undefined {
+  switch (assertion.type) {
+    case 'package_manager_required':
+      return `Replace any \`${(assertion as any).forbiddenManagers?.join('`/`') || 'npm/yarn'}\` commands with \`${assertion.manager}\`.`;
+    case 'forbidden_command':
+      return `Remove or replace the \`${assertion.commandIncludes}\` command — it is not allowed by the repository instructions.`;
+    case 'required_command':
+      return `Add \`${assertion.commandIncludes}\` to your workflow before finishing.`;
+    case 'required_file_change':
+      return `Ensure at least one file matching \`${assertion.pattern}\` is modified.`;
+    case 'forbidden_file_change':
+      return `Revert changes to files matching \`${assertion.pattern}\` — those files must not be modified.`;
+    case 'code_pattern_required':
+      return `Add the pattern \`${assertion.pattern}\` to the changed file contents.`;
+    case 'code_pattern_forbidden':
+      return `Remove occurrences of \`${assertion.pattern}\` from the changed file contents.`;
+    case 'final_answer_contains':
+      return `Include "${assertion.text}" in your final answer.`;
+    case 'final_answer_not_contains':
+      return `Remove "${assertion.text}" from your final answer.`;
+    case 'commit_message_format':
+      return `Format your commit message to match the pattern \`${assertion.pattern}\` (e.g. conventional commit: \`feat(scope): description\`).`;
+    case 'license_change_forbidden':
+      return `Revert any changes to LICENSE files or the \`"license"\` field in package.json.`;
+    case 'linter_must_run':
+      return `Run \`${assertion.tool}\` as part of your workflow.`;
+    default:
+      return undefined;
+  }
 }
 
 function humanExpected(assertion: Assertion): string {

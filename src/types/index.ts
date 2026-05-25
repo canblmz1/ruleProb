@@ -115,6 +115,8 @@ export interface EvaluationResult {
   ruleText?: string;
   /** Machine-readable reason when status is SKIPPED */
   skipReason?: "DRY_RUN" | "NO_ASSERTIONS" | "ALL_ASSERTIONS_SKIPPED" | "UNKNOWN";
+  /** Optional human-readable fix suggestion for FAIL/PARTIAL results */
+  suggestion?: string;
 }
 
 export interface Config {
