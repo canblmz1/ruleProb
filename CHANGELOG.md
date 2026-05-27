@@ -1,5 +1,13 @@
 # Release Notes
 
+## v1.11.0 - Live Sandbox Monitoring (`--live`)
+
+- **`ruleprobe run --live`:** Streams sandbox events to your terminal in real time while scenarios execute — file writes, file deletes, commands run, and scenario start/end markers, all with timestamps and chalk colours.
+- **JSONL event log:** Every live event is appended to `.ruleprobe/live-events.jsonl` for post-run inspection or CI artifact archiving.
+- **TTY-aware:** Terminal output is suppressed when stdout is piped (e.g., in CI redirect). JSONL log is always written.
+- **Zero new dependencies:** Reuses `chokidar` (already a dep) for file-system watching. No WebSocket, no HTTP server.
+- **Non-breaking opt-in:** Without `--live`, the run command is completely unchanged.
+
 ## v1.10.0 - Adaptive Severity Weights
 
 - **`--adaptive-weights` flag:** When enabled on `ruleprobe run`, severity weights are automatically boosted for high-failure categories based on historical run data. Failure rate > 30% boosts `high` weight up to 2×; 15–30% boosts `medium` weight up to 1.5×. Weights are always clamped to [1, 10].
