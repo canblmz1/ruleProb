@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.9.0 - Interactive init Wizard
+
+- **`ruleprobe init --interactive`:** Step-by-step wizard that detects your package manager, linters, and test runner from the repo's lockfiles and `package.json`, then asks whether to protect generated dirs (`dist/`, `build/`, `.next/`). Generates a ready-to-review `.ruleprobe/seed-rules.yaml` — never auto-writes to your instruction files.
+- **Dependency-injected wizard core:** `runInitWizard` is exported as a pure function for testability — all 8 wizard scenarios are unit-tested without spawning an interactive TTY.
+- **Non-interactive path unchanged:** `ruleprobe init [dir]`, `--from-claude`, `--provider`, `--with-ci` all behave identically.
+
 ## v1.8.0 - Rule Advisor (Heuristic)
 
 - **`ruleprobe advise [dir]`:** New command — scans your repo's lockfiles, package.json, git history, and `.ruleprobe/history.json` to surface missing or conflicting rules. Detects: no `package_manager` rule when a lockfile is present, no `linter_must_run` rule when eslint/biome/ruff found in devDeps, unprotected generated dirs (`dist/`, `build/`, `.next/`), conflicting rule pairs.
