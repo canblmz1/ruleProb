@@ -13,3 +13,8 @@ export { OpenAIProvider } from './providers/openai.js';
 export { OllamaProvider } from './providers/ollama.js';
 export { normalizeProviderResult } from './providers/normalize.js';
 export { evaluateResult } from './evaluator/score.js';
+export type { RepoScanResult, HistoryInsight, RuleSuggestion } from './advisor/types.js';
+export { scanRepo } from './advisor/repoScan.js';
+export { suggestRules } from './advisor/suggest.js';
+export type { AdaptiveWeightsResult } from './weights/adaptive.js';
+export { loadAdaptiveWeights } from './weights/adaptive.js';
