@@ -1,5 +1,13 @@
 # Release Notes
 
+## v1.8.0 - Rule Advisor (Heuristic)
+
+- **`ruleprobe advise [dir]`:** New command — scans your repo's lockfiles, package.json, git history, and `.ruleprobe/history.json` to surface missing or conflicting rules. Detects: no `package_manager` rule when a lockfile is present, no `linter_must_run` rule when eslint/biome/ruff found in devDeps, unprotected generated dirs (`dist/`, `build/`, `.next/`), conflicting rule pairs.
+- **Proposal-only:** Suggestions are written to `.ruleprobe/suggestions.json` + `.ruleprobe/suggestions.md` — they are never auto-applied to your instruction files.
+- **`--json` flag:** Machine-readable output for CI pipelines.
+- **History trend:** Reads `.ruleprobe/history.json` to report whether compliance is improving, declining, or stable.
+- **No new dependencies:** Pure heuristics on existing data — no ML, no embeddings, no heavy libs.
+
 ## v1.7.0 - Community & Growth Tooling
 
 - **`ruleprobe feedback`:** New command — prints GitHub Issues link, CONTRIBUTING.md reference, and a repo star nudge. Run it anytime to get help or share feedback.
