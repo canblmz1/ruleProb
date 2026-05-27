@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { globalEventBus, LiveEvent } from './eventBus.js';
 
 export function startLiveReporter(): void {
+  if (!process.stdout.isTTY) return;  // suppress when piped
   globalEventBus.on((event: LiveEvent) => {
     const time = new Date(event.timestamp).toISOString().slice(11, 19);
     const prefix = chalk.dim(`[${time}]`);

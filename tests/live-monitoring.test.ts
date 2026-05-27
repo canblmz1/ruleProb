@@ -69,9 +69,16 @@ describe('EventBus', () => {
 });
 
 describe('startLiveReporter', () => {
+  beforeEach(() => {
+    globalEventBus.clear();
+  });
+
   it('subscribes to globalEventBus and writes scenario_start to console', async () => {
-    // Reset globalEventBus handlers by replacing — import fresh after resetting
     const { startLiveReporter } = await import('../src/live/terminal.js');
+
+    // Force isTTY so startLiveReporter registers its handler in test environment
+    const origIsTTY = process.stdout.isTTY;
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     startLiveReporter();
@@ -83,6 +90,8 @@ describe('startLiveReporter', () => {
     expect(calls.some((c) => c.includes('Live Scenario Alpha'))).toBe(true);
 
     logSpy.mockRestore();
+    Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true });
+    globalEventBus.clear();
   });
 });
 

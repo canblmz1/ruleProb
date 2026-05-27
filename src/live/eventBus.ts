@@ -18,6 +18,10 @@ export class EventBus {
   emit(event: LiveEvent): void {
     for (const h of this.handlers) h(event);
   }
+
+  clear(): void {
+    this.handlers = [];
+  }
 }
 
 export const globalEventBus = new EventBus();

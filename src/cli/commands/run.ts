@@ -167,8 +167,12 @@ async function executeRun(
     await fs.ensureDir(config.reportDir);
     await fs.writeFile(liveJsonlPath, '', 'utf-8');
     // Append every event as a JSON line
-    globalEventBus.on((event) => {
-      fs.appendFile(liveJsonlPath!, JSON.stringify(event) + '\n').catch(() => {});
+    globalEventBus.on(async (event) => {
+      try {
+        await fs.appendFile(liveJsonlPath!, JSON.stringify(event) + '\n', 'utf-8');
+      } catch {
+        // non-fatal: live event log write failed, continue
+      }
     });
     console.log(chalk.dim(`Live events: ${liveJsonlPath}\n`));
   }
