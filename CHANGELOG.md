@@ -1,5 +1,12 @@
 # Release Notes
 
+## v1.10.0 - Adaptive Severity Weights
+
+- **`--adaptive-weights` flag:** When enabled on `ruleprobe run`, severity weights are automatically boosted for high-failure categories based on historical run data. Failure rate > 30% boosts `high` weight up to 2×; 15–30% boosts `medium` weight up to 1.5×. Weights are always clamped to [1, 10].
+- **Exponential decay:** Recent runs influence the adaptive weight more than older ones (decay factor 0.8 per step back) so the system adapts to your current compliance trajectory.
+- **Opt-in, non-breaking:** Without `--adaptive-weights`, the existing static weights from `.ruleprobe/weights.yaml` (or defaults) apply exactly as before.
+- **Transparent output:** Writes `.ruleprobe/weights.adaptive.json` after each adaptive run so you can inspect the computed weights.
+
 ## v1.9.0 - Interactive init Wizard
 
 - **`ruleprobe init --interactive`:** Step-by-step wizard that detects your package manager, linters, and test runner from the repo's lockfiles and `package.json`, then asks whether to protect generated dirs (`dist/`, `build/`, `.next/`). Generates a ready-to-review `.ruleprobe/seed-rules.yaml` — never auto-writes to your instruction files.
