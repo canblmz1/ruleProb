@@ -24,6 +24,7 @@ import { writeBadgeFiles, writeShieldsEndpoint } from '../../badge/generate.js';
 import { appendHistory } from '../../history/track.js';
 import { readBaseline, writeBaseline, computeBaselineDelta, formatBaselineDelta, BaselineDelta } from '../../baseline/compare.js';
 import { EvaluationResult, Provider, Config } from '../../types/index.js';
+import { startLiveReporter, watchSandbox, globalEventBus } from '../../live/index.js';
 
 export function register(program: Command): void {
   program
@@ -52,6 +53,7 @@ export function register(program: Command): void {
     .option('--demo', 'Demo mode: use mock provider with realistic PASS/FAIL mix, no API key needed')
     .option('--no-custom-scenarios', 'Skip loading .ruleprobe/scenarios.yaml')
     .option('--adaptive-weights', 'Boost severity weights for high-failure categories based on run history')
+    .option('--live', 'Stream sandbox file-change and command-execution events to terminal in real time')
     .action(async (dir, options) => {
       const runId = Date.now();
 
@@ -106,7 +108,7 @@ export function register(program: Command): void {
           await writeComparisonReport(allResults, baseConfig, runId);
           return;
         }
-        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode, loadCustomScenarios: options.customScenarios !== false, adaptiveWeights: !!options.adaptiveWeights });
+        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode, loadCustomScenarios: options.customScenarios !== false, adaptiveWeights: !!options.adaptiveWeights, live: !!options.live });
       }
 
       await doRun();
@@ -153,9 +155,24 @@ export function register(program: Command): void {
 async function executeRun(
   config: Config,
   providerName: string,
-  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean; adaptiveWeights?: boolean } = {}
+  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean; adaptiveWeights?: boolean; live?: boolean } = {}
 ): Promise<EvaluationResult[]> {
   console.log(chalk.blue('RuleProbe Runner Started'));
+
+  // Live monitoring setup
+  let liveJsonlPath: string | undefined;
+  if (opts.live) {
+    startLiveReporter();
+    liveJsonlPath = path.join(config.reportDir, 'live-events.jsonl');
+    await fs.ensureDir(config.reportDir);
+    await fs.writeFile(liveJsonlPath, '', 'utf-8');
+    // Append every event as a JSON line
+    globalEventBus.on((event) => {
+      fs.appendFile(liveJsonlPath!, JSON.stringify(event) + '\n').catch(() => {});
+    });
+    console.log(chalk.dim(`Live events: ${liveJsonlPath}\n`));
+  }
+
   const files = await discoverInstructions(config);
 
   if (files.length === 0) {
@@ -219,8 +236,43 @@ async function executeRun(
 
   for (const scenario of allScenarios) {
     const sandboxDir = await createSandbox(scenario);
+
+    let stopWatcher: (() => void) | undefined;
+    if (opts.live) {
+      globalEventBus.emit({
+        type: 'scenario_start',
+        scenarioId: scenario.id,
+        scenarioTitle: scenario.title,
+        payload: scenario.title,
+        timestamp: Date.now()
+      });
+      stopWatcher = watchSandbox(sandboxDir, scenario.id, scenario.title);
+    }
+
     const rawProviderResult = await provider.run({ scenario, sandboxDir });
     const providerResult = normalizeProviderResult(rawProviderResult);
+
+    if (opts.live) {
+      // Emit command_exec events post-hoc (commands already ran inside provider.run)
+      for (const cmd of (providerResult.commands ?? [])) {
+        globalEventBus.emit({
+          type: 'command_exec',
+          scenarioId: scenario.id,
+          scenarioTitle: scenario.title,
+          payload: cmd,
+          timestamp: Date.now()
+        });
+      }
+      stopWatcher?.();
+      globalEventBus.emit({
+        type: 'scenario_end',
+        scenarioId: scenario.id,
+        scenarioTitle: scenario.title,
+        payload: 'done',
+        timestamp: Date.now()
+      });
+    }
+
     const evalResult = await evaluateResult(scenario, providerResult);
     results.push(evalResult);
 
