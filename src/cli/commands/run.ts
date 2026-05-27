@@ -51,6 +51,7 @@ export function register(program: Command): void {
     .option('--lang <language>', 'Language profile: node (default), python, go, rust')
     .option('--demo', 'Demo mode: use mock provider with realistic PASS/FAIL mix, no API key needed')
     .option('--no-custom-scenarios', 'Skip loading .ruleprobe/scenarios.yaml')
+    .option('--adaptive-weights', 'Boost severity weights for high-failure categories based on run history')
     .action(async (dir, options) => {
       const runId = Date.now();
 
@@ -105,7 +106,7 @@ export function register(program: Command): void {
           await writeComparisonReport(allResults, baseConfig, runId);
           return;
         }
-        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode, loadCustomScenarios: options.customScenarios !== false });
+        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode, loadCustomScenarios: options.customScenarios !== false, adaptiveWeights: !!options.adaptiveWeights });
       }
 
       await doRun();
@@ -152,7 +153,7 @@ export function register(program: Command): void {
 async function executeRun(
   config: Config,
   providerName: string,
-  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean } = {}
+  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean; adaptiveWeights?: boolean } = {}
 ): Promise<EvaluationResult[]> {
   console.log(chalk.blue('RuleProbe Runner Started'));
   const files = await discoverInstructions(config);
@@ -265,6 +266,16 @@ async function executeRun(
   const { loadSeverityWeights } = await import('../../config/weights.js');
   const severityWeights = await loadSeverityWeights();
 
+  let finalWeights = severityWeights;
+  if (opts.adaptiveWeights) {
+    const { loadAdaptiveWeights } = await import('../../weights/adaptive.js');
+    const adaptive = await loadAdaptiveWeights(config.reportDir, severityWeights);
+    finalWeights = adaptive.weights;
+    if (adaptive.source === 'adaptive') {
+      console.log(chalk.dim(`Adaptive weights active (${adaptive.runsAnalyzed} runs analyzed)`));
+    }
+  }
+
   if (opts.writeReports) {
     let delta: BaselineDelta | undefined;
     if (config.baseline) {
@@ -280,18 +291,18 @@ async function executeRun(
       console.log(chalk.green(`\nBaseline updated: ${config.reportDir}/baseline.json`));
     }
 
-    await writeJsonReport(results, config, delta, severityWeights);
-    await writeMarkdownReport(results, config, delta, severityWeights);
-    await writeHtmlReport(results, config, delta, severityWeights);
+    await writeJsonReport(results, config, delta, finalWeights);
+    await writeMarkdownReport(results, config, delta, finalWeights);
+    await writeHtmlReport(results, config, delta, finalWeights);
     const sarifPath = await writeSarifReport(results, config);
     const junitPath = await writeJUnitReport(results, config);
-    const prCommentPath = await writePrCommentReport(results, config, delta, severityWeights);
+    const prCommentPath = await writePrCommentReport(results, config, delta, finalWeights);
 
     console.log(`Reports written:\n- ${config.reportDir}/report.json\n- ${config.reportDir}/report.md\n- ${config.reportDir}/report.html\n- ${sarifPath}\n- ${junitPath}\n- ${prCommentPath}\n`);
 
     const trend = await appendHistory({
       score: finalScore,
-      weightedScore: buildReportProofModel(results, config, severityWeights).weightedScore,
+      weightedScore: buildReportProofModel(results, config, finalWeights).weightedScore,
       totalRules: results.length,
       passed: results.filter(r => r.status === 'PASS').length,
       partial: results.filter(r => r.status === 'PARTIAL').length,
