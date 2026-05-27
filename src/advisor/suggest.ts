@@ -1,5 +1,15 @@
 import type { RepoScanResult, HistoryInsight, RuleSuggestion } from './types.js';
-import type { Rule, RuleCategory } from '../types/index.js';
+import type { Rule, RuleCategory, Assertion } from '../types/index.js';
+
+// ── Typed assertion predicates ────────────────────────────────────────────────
+
+function isRequiredCommand(a: Assertion): a is { type: 'required_command'; commandIncludes: string } {
+  return a.type === 'required_command';
+}
+
+function isForbiddenCommand(a: Assertion): a is { type: 'forbidden_command'; commandIncludes: string } {
+  return a.type === 'forbidden_command';
+}
 
 /**
  * Protected directories — frequently-changed generated or build dirs should
@@ -113,14 +123,10 @@ export function suggestRules(
 
   // Detect conflicting forbidden/required commands for the same command
   const requiredCmds = (categoryRules.get('required_command') ?? []).flatMap(r =>
-    r.assertions
-      .filter(a => a.type === 'required_command')
-      .map(a => (a as { type: 'required_command'; commandIncludes: string }).commandIncludes.toLowerCase())
+    r.assertions.filter(isRequiredCommand).map(a => a.commandIncludes.toLowerCase())
   );
   const forbiddenCmds = (categoryRules.get('forbidden_command') ?? []).flatMap(r =>
-    r.assertions
-      .filter(a => a.type === 'forbidden_command')
-      .map(a => (a as { type: 'forbidden_command'; commandIncludes: string }).commandIncludes.toLowerCase())
+    r.assertions.filter(isForbiddenCommand).map(a => a.commandIncludes.toLowerCase())
   );
 
   for (const cmd of requiredCmds) {

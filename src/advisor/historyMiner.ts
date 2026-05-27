@@ -3,6 +3,9 @@ import path from 'path';
 import type { HistoryInsight } from './types.js';
 import type { HistoryEntry } from '../history/track.js';
 
+/** Minimum score delta (percentage points) to classify a trend as improving or declining. */
+const TREND_THRESHOLD_PCT = 3;
+
 /**
  * Mine .ruleprobe/history.json to extract failure trends.
  * Returns safe defaults when the file is missing or malformed.
@@ -14,9 +17,10 @@ export async function mineHistory(reportDir: string): Promise<HistoryInsight> {
   if (await fs.pathExists(historyPath)) {
     try {
       const raw = await fs.readJson(historyPath);
-      if (Array.isArray(raw)) {
-        history = raw as HistoryEntry[];
+      if (!Array.isArray(raw)) {
+        return { failureRate: 0, trend: 'stable', totalRuns: 0 };
       }
+      history = raw as HistoryEntry[];
     } catch {
       // malformed — treat as empty
     }
@@ -40,12 +44,12 @@ export async function mineHistory(reportDir: string): Promise<HistoryInsight> {
     const firstHalf = history.slice(0, mid);
     const secondHalf = history.slice(mid);
 
-    const avgFirst = firstHalf.reduce((acc, e) => acc + e.score, 0) / firstHalf.length;
-    const avgSecond = secondHalf.reduce((acc, e) => acc + e.score, 0) / secondHalf.length;
+    const avgFirst = firstHalf.reduce((acc, e) => acc + (typeof e.score === 'number' ? e.score : 0), 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((acc, e) => acc + (typeof e.score === 'number' ? e.score : 0), 0) / secondHalf.length;
     const delta = avgSecond - avgFirst;
 
-    if (delta >= 3) trend = 'improving';
-    else if (delta <= -3) trend = 'declining';
+    if (delta >= TREND_THRESHOLD_PCT) trend = 'improving';
+    else if (delta <= -TREND_THRESHOLD_PCT) trend = 'declining';
     else trend = 'stable';
   }
 
