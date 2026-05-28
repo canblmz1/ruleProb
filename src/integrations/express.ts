@@ -10,15 +10,7 @@
  * req and res are typed as `any` to avoid requiring @types/express.
  */
 
-import { loadConfig } from '../config/load.js';
-import { discoverInstructions } from '../instructions/discover.js';
-import { routeExtraction } from '../extractors/merge.js';
-import { generateScenarios } from '../scenarios/generate.js';
-import { MockProvider } from '../providers/mock.js';
-import { DryRunProvider } from '../providers/dryRun.js';
-import { normalizeProviderResult } from '../providers/normalize.js';
-import { evaluateResult } from '../evaluator/score.js';
-import { createSandbox, cleanupSandbox } from '../sandbox/create.js';
+import { runComplianceCore, extractRulesCore } from './_core.js';
 
 export interface RuleProbeRouterConfig {
   dir?: string;
@@ -30,45 +22,20 @@ export function createExpressHandlers(routerConfig: RuleProbeRouterConfig = {}) 
     try {
       const dir = (req.body?.dir as string) || routerConfig.dir || process.cwd();
       const providerName = (req.body?.provider as string) || routerConfig.provider || 'mock';
-
-      const config = await loadConfig();
-      const files = await discoverInstructions({
-        ...config,
-        instructionFiles: [dir + '/CLAUDE.md', dir + '/AGENTS.md'],
-      });
-      const rules = await routeExtraction(files, config);
-      const scenarios = generateScenarios(rules);
-
-      const provider = providerName === 'dry-run' ? new DryRunProvider() : new MockProvider();
-
-      const results = [];
-      for (const scenario of scenarios.slice(0, 10)) {
-        const sandboxDir = await createSandbox(scenario);
-        const rawResult = await provider.run({ scenario, sandboxDir });
-        const providerResult = normalizeProviderResult(rawResult);
-        const evalResult = await evaluateResult(scenario, providerResult);
-        results.push(evalResult);
-        await cleanupSandbox(sandboxDir);
-      }
-
+      const results = await runComplianceCore(dir, providerName);
       res.json({ ok: true, results, count: results.length });
-    } catch (err: any) {
-      res.status(500).json({ ok: false, error: err.message });
+    } catch (err: unknown) {
+      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
   }
 
   async function handleRules(req: any, res: any): Promise<void> {
     try {
       const dir = (req.query?.dir as string) || routerConfig.dir || process.cwd();
-      const config = await loadConfig();
-      const files = await discoverInstructions({
-        ...config,
-        instructionFiles: [dir + '/CLAUDE.md', dir + '/AGENTS.md'],
-      });
-      const rules = await routeExtraction(files, config);
+      const rules = await extractRulesCore(dir);
       res.json({ ok: true, rules, count: rules.length });
-    } catch (err: any) {
-      res.status(500).json({ ok: false, error: err.message });
+    } catch (err: unknown) {
+      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
   }
 

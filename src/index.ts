@@ -18,3 +18,5 @@ export { scanRepo } from './advisor/repoScan.js';
 export { suggestRules } from './advisor/suggest.js';
 export type { AdaptiveWeightsResult } from './weights/adaptive.js';
 export { loadAdaptiveWeights } from './weights/adaptive.js';
+export { createExpressHandlers } from './integrations/express.js';
+export { createNextHandlers } from './integrations/next.js';

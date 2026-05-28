@@ -16,5 +16,16 @@ export default defineConfig([
     target: 'node18',
     dts: true,
     outDir: 'dist'
+  },
+  {
+    entry: {
+      'integrations/express': 'src/integrations/express.ts',
+      'integrations/next': 'src/integrations/next.ts',
+      'integrations/index': 'src/integrations/index.ts',
+    },
+    format: ['esm'],
+    target: 'node18',
+    dts: true,
+    outDir: 'dist'
   }
 ]);

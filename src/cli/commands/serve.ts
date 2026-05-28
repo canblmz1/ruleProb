@@ -40,11 +40,8 @@ export function register(program: Command): void {
       });
 
       process.on('SIGINT', () => {
-        server.close();
-        process.exit(0);
+        server.close(() => process.exit(0));
       });
-
-      await new Promise(() => {}); // keep alive
     });
 }
 

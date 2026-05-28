@@ -83,7 +83,6 @@ test('handleRules returns JSON with ok:true and rules array', async () => {
   const handlers = createExpressHandlers({ dir: '/test', provider: 'mock' });
 
   const req = { query: {}, body: {} };
-  let statusCode = 200;
   let responseBody: any = null;
 
   const res = {
@@ -91,7 +90,6 @@ test('handleRules returns JSON with ok:true and rules array', async () => {
       responseBody = body;
     }),
     status: vi.fn((_code: number) => {
-      statusCode = _code;
       return { json: vi.fn((body: any) => { responseBody = body; }) };
     }),
   };
@@ -120,6 +118,33 @@ test('handleRun returns JSON with ok:true and results array (no scenarios)', asy
   expect(res.json).toHaveBeenCalled();
   expect(responseBody).toMatchObject({ ok: true });
   expect(Array.isArray(responseBody.results)).toBe(true);
+});
+
+test('Express handleRun returns 500 with ok:false on error', async () => {
+  const { routeExtraction } = await import('../src/extractors/merge.js');
+  (routeExtraction as any).mockRejectedValueOnce(new Error('run extraction failure'));
+
+  const handlers = createExpressHandlers({ dir: '/test', provider: 'mock' });
+
+  const req = { body: { dir: '/test', provider: 'mock' } };
+  let statusCode = 200;
+  let responseBody: any = null;
+
+  const res = {
+    json: vi.fn(),
+    status: vi.fn((code: number) => {
+      statusCode = code;
+      return {
+        json: vi.fn((body: any) => { responseBody = body; }),
+      };
+    }),
+  };
+
+  await handlers.handleRun(req, res);
+
+  expect(statusCode).toBe(500);
+  expect(responseBody).toMatchObject({ ok: false });
+  expect(typeof responseBody.error).toBe('string');
 });
 
 test('Express handleRules returns 500 with ok:false on error', async () => {
@@ -155,6 +180,105 @@ test('createNextHandlers returns object with run and rules functions', () => {
   const handlers = createNextHandlers({ dir: '/test', provider: 'mock' });
   expect(typeof handlers.run).toBe('function');
   expect(typeof handlers.rules).toBe('function');
+});
+
+test('Next run handler returns 200 with ok:true and results array', async () => {
+  const handlers = createNextHandlers({ dir: '/test', provider: 'mock' });
+
+  const req = { body: { dir: '/test', provider: 'mock' } };
+  let statusCode = 0;
+  let responseBody: any = null;
+
+  const res = {
+    status: vi.fn((code: number) => {
+      statusCode = code;
+      return {
+        json: vi.fn((body: any) => { responseBody = body; }),
+      };
+    }),
+  };
+
+  await handlers.run(req, res);
+
+  expect(statusCode).toBe(200);
+  expect(responseBody).toMatchObject({ ok: true });
+  expect(Array.isArray(responseBody.results)).toBe(true);
+});
+
+test('Next run handler returns 500 with ok:false on error', async () => {
+  const { routeExtraction } = await import('../src/extractors/merge.js');
+  (routeExtraction as any).mockRejectedValueOnce(new Error('next run failure'));
+
+  const handlers = createNextHandlers({ dir: '/test', provider: 'mock' });
+
+  const req = { body: { dir: '/test', provider: 'mock' } };
+  let statusCode = 0;
+  let responseBody: any = null;
+
+  const res = {
+    status: vi.fn((code: number) => {
+      statusCode = code;
+      return {
+        json: vi.fn((body: any) => { responseBody = body; }),
+      };
+    }),
+  };
+
+  await handlers.run(req, res);
+
+  expect(statusCode).toBe(500);
+  expect(responseBody).toMatchObject({ ok: false });
+  expect(typeof responseBody.error).toBe('string');
+});
+
+test('Next rules handler returns 200 with ok:true and rules array', async () => {
+  const handlers = createNextHandlers({ dir: '/test', provider: 'mock' });
+
+  const req = { query: {} };
+  let statusCode = 0;
+  let responseBody: any = null;
+
+  const res = {
+    status: vi.fn((code: number) => {
+      statusCode = code;
+      return {
+        json: vi.fn((body: any) => { responseBody = body; }),
+      };
+    }),
+  };
+
+  await handlers.rules(req, res);
+
+  expect(statusCode).toBe(200);
+  expect(responseBody).toMatchObject({ ok: true });
+  expect(Array.isArray(responseBody.rules)).toBe(true);
+  expect(typeof responseBody.count).toBe('number');
+});
+
+test('Next rules handler returns 500 with ok:false on error', async () => {
+  const { routeExtraction } = await import('../src/extractors/merge.js');
+  (routeExtraction as any).mockRejectedValueOnce(new Error('next rules failure'));
+
+  const handlers = createNextHandlers({ dir: '/test', provider: 'mock' });
+
+  const req = { query: {} };
+  let statusCode = 0;
+  let responseBody: any = null;
+
+  const res = {
+    status: vi.fn((code: number) => {
+      statusCode = code;
+      return {
+        json: vi.fn((body: any) => { responseBody = body; }),
+      };
+    }),
+  };
+
+  await handlers.rules(req, res);
+
+  expect(statusCode).toBe(500);
+  expect(responseBody).toMatchObject({ ok: false });
+  expect(typeof responseBody.error).toBe('string');
 });
 
 // ── serve command is registered in the CLI ────────────────────────────────────
