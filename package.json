@@ -1,6 +1,6 @@
 {
   "name": "ruleprobe-ai",
-  "version": "1.11.0",
+  "version": "2.0.0",
   "description": "Test whether your repo AI instructions actually survive execution.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,6 +28,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./integrations": {
+      "types": "./dist/integrations/index.d.ts",
+      "import": "./dist/integrations/index.js"
+    },
+    "./integrations/express": {
+      "types": "./dist/integrations/express.d.ts",
+      "import": "./dist/integrations/express.js"
+    },
+    "./integrations/next": {
+      "types": "./dist/integrations/next.d.ts",
+      "import": "./dist/integrations/next.js"
     }
   },
   "keywords": [

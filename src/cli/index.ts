@@ -25,6 +25,7 @@ import { register as registerLeaderboard } from './commands/leaderboard.js';
 import { register as registerFeedback } from './commands/feedback.js';
 import { register as registerUpgrade } from './commands/upgrade.js';
 import { register as registerAdvise } from './commands/advise.js';
+import { register as registerServe } from './commands/serve.js';
 
 const program = new Command();
 
@@ -54,5 +55,6 @@ registerLeaderboard(program);
 registerFeedback(program);
 registerUpgrade(program);
 registerAdvise(program);
+registerServe(program);
 
 program.parse(process.argv);
