@@ -1,6 +1,6 @@
 # RuleProbe
 
-> **AI coding rules are documentation until you test them.**
+> **Your AI coding rules are documentation until you test them.**
 
 [![Node >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![npm](https://img.shields.io/npm/v/ruleprobe-ai)](https://www.npmjs.com/package/ruleprobe-ai) [![RuleProbe](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/canblmz1/ruleProb/main/.ruleprobe/badge.json)](https://github.com/canblmz1/ruleProb)
 
@@ -93,6 +93,10 @@ pnpm dev run examples/strict --provider mock
 | `examples/basic` | Minimal starter — package manager + one forbidden file | 6 |
 | `examples/minimal` | 3-rule zero-friction intro (package manager, forbidden command, required command) | 3 |
 | `examples/strict` | Full-coverage showcase — all rule categories, deliberate failures | 17 |
+| `examples/nextjs-app` | Realistic Next.js project — pnpm, typecheck, file protection, code patterns | 14 |
+| `examples/rust-project` | Rust/cargo rules — clippy, fmt, file protection, no unwrap | 11 |
+| `examples/security-focused` | Security-heavy enforcement — audit, no eval, no hardcoded secrets | 10 |
+| `examples/unverifiable` | Shows unverifiable rule detection — 3 testable + 5 unverifiable | 3 testable + 5 |
 
 ```bash
 # Try the strict example (no API key)
