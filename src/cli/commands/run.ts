@@ -56,6 +56,7 @@ export function register(program: Command): void {
     .option('--live', 'Stream sandbox file-change and command-execution events to terminal in real time')
     .option('--parallel <n>', 'Run N scenarios concurrently (default: 1 = sequential)', '1')
     .option('--filter <categories>', 'Run only scenarios matching these categories (comma-separated, e.g. forbidden_command,required_command)')
+    .option('--quiet', 'Suppress per-scenario output; print only the final score line')
     .action(async (dir, options) => {
       const runId = Date.now();
 
@@ -111,7 +112,7 @@ export function register(program: Command): void {
           await writeComparisonReport(allResults, baseConfig, runId);
           return;
         }
-        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode, loadCustomScenarios: options.customScenarios !== false, adaptiveWeights: !!options.adaptiveWeights, live: !!options.live, filterCategories: options.filter ? String(options.filter).split(',').map((c: string) => c.trim()) : undefined });
+        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode, loadCustomScenarios: options.customScenarios !== false, adaptiveWeights: !!options.adaptiveWeights, live: !!options.live, filterCategories: options.filter ? String(options.filter).split(',').map((c: string) => c.trim()) : undefined, quiet: !!options.quiet });
       }
 
       await doRun();
@@ -158,7 +159,7 @@ export function register(program: Command): void {
 async function executeRun(
   config: Config,
   providerName: string,
-  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean; adaptiveWeights?: boolean; live?: boolean; filterCategories?: string[] } = {}
+  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean; adaptiveWeights?: boolean; live?: boolean; filterCategories?: string[]; quiet?: boolean } = {}
 ): Promise<EvaluationResult[]> {
   console.log(chalk.blue('RuleProbe Runner Started'));
 
@@ -288,19 +289,21 @@ async function executeRun(
 
     const evalResult = await evaluateResult(scenario, providerResult);
 
-    const statusColor = evalResult.status === 'PASS' || evalResult.status === 'SKIPPED' ? chalk.green : evalResult.status === 'PARTIAL' ? chalk.yellow : chalk.red;
-    console.log(`${statusColor(evalResult.status.padEnd(7))} ${scenario.title}`);
+    if (!opts.quiet) {
+      const statusColor = evalResult.status === 'PASS' || evalResult.status === 'SKIPPED' ? chalk.green : evalResult.status === 'PARTIAL' ? chalk.yellow : chalk.red;
+      console.log(`${statusColor(evalResult.status.padEnd(7))} ${scenario.title}`);
 
-    if (concurrency === 1) {
-      const firstAssertion = scenario.expectedAssertions[0];
-      if (firstAssertion) {
-        const expectedVal = (firstAssertion as any).value || (firstAssertion as any).manager || (firstAssertion as any).commandIncludes || (firstAssertion as any).pattern || (firstAssertion as any).text || firstAssertion.type;
-        console.log(`      Expected: ${expectedVal}`);
+      if (concurrency === 1) {
+        const firstAssertion = scenario.expectedAssertions[0];
+        if (firstAssertion) {
+          const expectedVal = (firstAssertion as any).value || (firstAssertion as any).manager || (firstAssertion as any).commandIncludes || (firstAssertion as any).pattern || (firstAssertion as any).text || firstAssertion.type;
+          console.log(`      Expected: ${expectedVal}`);
+        }
+        if (evalResult.assertionResults.length > 0) {
+          console.log(`      Actual: ${evalResult.assertionResults[0].evidence}`);
+        }
+        console.log('');
       }
-      if (evalResult.assertionResults.length > 0) {
-        console.log(`      Actual: ${evalResult.assertionResults[0].evidence}`);
-      }
-      console.log('');
     }
 
     if (!config.keepSandbox) {

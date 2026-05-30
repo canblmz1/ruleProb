@@ -23,6 +23,7 @@ export function register(program: Command): void {
     .option('--no-cache', 'Disable AI extraction cache')
     .option('--provider-timeout-ms <ms>', 'Override the default provider extraction timeout')
     .option('--lang <language>', 'Language profile: node (default), python, go, rust')
+    .option('--json', 'Output rules as JSON array to stdout')
     .action(async (dir, options) => {
       const config = await loadConfig();
       if (options.extractor) config.extractor = options.extractor;
@@ -52,6 +53,11 @@ export function register(program: Command): void {
 
       const allRules = await routeExtraction(files, config);
       const rules = options.showInformational ? allRules : allRules.filter(r => r.testable);
+
+      if (options.json) {
+        console.log(JSON.stringify(allRules, null, 2));
+        return;
+      }
 
       if (options.showScenarios) {
         for (const rule of rules) {
