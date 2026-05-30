@@ -55,6 +55,7 @@ export function register(program: Command): void {
     .option('--adaptive-weights', 'Boost severity weights for high-failure categories based on run history')
     .option('--live', 'Stream sandbox file-change and command-execution events to terminal in real time')
     .option('--parallel <n>', 'Run N scenarios concurrently (default: 1 = sequential)', '1')
+    .option('--filter <categories>', 'Run only scenarios matching these categories (comma-separated, e.g. forbidden_command,required_command)')
     .action(async (dir, options) => {
       const runId = Date.now();
 
@@ -110,7 +111,7 @@ export function register(program: Command): void {
           await writeComparisonReport(allResults, baseConfig, runId);
           return;
         }
-        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode, loadCustomScenarios: options.customScenarios !== false, adaptiveWeights: !!options.adaptiveWeights, live: !!options.live });
+        await executeRun(baseConfig, providerList[0], { writeReports: true, generateBadge: options.badge, demoMode: !!options._demoMode, loadCustomScenarios: options.customScenarios !== false, adaptiveWeights: !!options.adaptiveWeights, live: !!options.live, filterCategories: options.filter ? String(options.filter).split(',').map((c: string) => c.trim()) : undefined });
       }
 
       await doRun();
@@ -157,7 +158,7 @@ export function register(program: Command): void {
 async function executeRun(
   config: Config,
   providerName: string,
-  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean; adaptiveWeights?: boolean; live?: boolean } = {}
+  opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean; adaptiveWeights?: boolean; live?: boolean; filterCategories?: string[] } = {}
 ): Promise<EvaluationResult[]> {
   console.log(chalk.blue('RuleProbe Runner Started'));
 
@@ -202,6 +203,12 @@ async function executeRun(
       console.log(`Loaded ${customScenarios.length} custom scenario(s) from .ruleprobe/scenarios.yaml.`);
     }
     allScenarios = [...baseScenarios, ...customScenarios];
+  }
+
+  if (opts.filterCategories && opts.filterCategories.length > 0) {
+    const before = allScenarios.length;
+    allScenarios = allScenarios.filter(s => opts.filterCategories!.includes(s.ruleCategory ?? ''));
+    console.log(`Filter: ${opts.filterCategories.join(', ')} — ${allScenarios.length}/${before} scenarios selected.\n`);
   }
 
   console.log(`Generated ${allScenarios.length} sandbox scenarios.\n`);
