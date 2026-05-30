@@ -6,9 +6,9 @@ on:
     branches: [main]
     paths:
       - 'demo.tape'
-      - 'examples/basic/**'
-      - 'examples/strict/**'
-      - 'examples/minimal/**'
+      - 'examples/**'
+      - 'src/providers/mock.ts'
+      - 'src/cli/commands/run.ts'
 
 permissions:
   contents: write
@@ -39,7 +39,6 @@ jobs:
           npm install -g .
           RULEPROBE_BIN=$(which ruleprobe)
           echo "ruleprobe path: $RULEPROBE_BIN"
-          # Symlink to /usr/local/bin so VHS shell can find it
           sudo ln -sf "$RULEPROBE_BIN" /usr/local/bin/ruleprobe
           ruleprobe --version
 
@@ -56,6 +55,9 @@ jobs:
           sudo chmod +x /usr/local/bin/vhs
           vhs --version
 
+      - name: Create docs directory
+        run: mkdir -p docs
+
       - name: Generate demo GIF
         run: vhs demo.tape
         env:
@@ -65,4 +67,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "docs: update demo GIF [skip ci]"
-          file_pattern: "demo.gif"
+          file_pattern: "docs/demo.gif"
