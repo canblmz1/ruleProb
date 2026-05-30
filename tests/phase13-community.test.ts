@@ -47,7 +47,7 @@ test('init --with-ci creates GitHub Actions workflow file', async () => {
     expect(await fs.pathExists(workflowPath)).toBe(true);
     const content = await fs.readFile(workflowPath, 'utf-8');
     expect(content).toContain('RuleProbe Compliance');
-    expect(content).toContain('canblmz1/ruleProb');
+    expect(content).toContain('npx ruleprobe-ai@latest');
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
