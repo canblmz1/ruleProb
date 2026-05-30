@@ -1,5 +1,6 @@
 import type { RepoScanResult, HistoryInsight, RuleSuggestion } from './types.js';
 import type { Rule, RuleCategory, Assertion } from '../types/index.js';
+import { isMLAvailable, findSimilarRules } from './ml/index.js';
 
 // ── Typed assertion predicates ────────────────────────────────────────────────
 
@@ -141,4 +142,34 @@ export function suggestRules(
   }
 
   return suggestions;
+}
+
+/**
+ * Augment suggestions with ML-powered semantic duplicate/conflict detection.
+ * Requires @xenova/transformers — gracefully falls back to [] if not installed.
+ */
+export async function generateSuggestionsWithML(rules: Rule[]): Promise<string[]> {
+  const available = await isMLAvailable();
+  if (!available) {
+    console.warn('[ml-advisor] @xenova/transformers not installed — falling back to heuristics.');
+    console.warn('[ml-advisor] Install with: pnpm add @xenova/transformers');
+    return [];
+  }
+
+  const mlSuggestions: string[] = [];
+  for (let i = 0; i < rules.length; i++) {
+    const similar = await findSimilarRules(rules[i], rules.slice(i + 1));
+    for (const s of similar) {
+      if (s.verdict === 'duplicate') {
+        mlSuggestions.push(
+          `[ML/duplicate] "${rules[i].text.slice(0, 60)}" is semantically identical to "${s.ruleText.slice(0, 60)}" (similarity: ${(s.similarity * 100).toFixed(0)}%) — consider removing one.`
+        );
+      } else if (s.verdict === 'conflict') {
+        mlSuggestions.push(
+          `[ML/conflict] "${rules[i].text.slice(0, 60)}" may conflict with "${s.ruleText.slice(0, 60)}" (different categories, similarity ${(s.similarity * 100).toFixed(0)}%).`
+        );
+      }
+    }
+  }
+  return mlSuggestions;
 }

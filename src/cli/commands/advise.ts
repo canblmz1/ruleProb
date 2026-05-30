@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { scanRepo } from '../../advisor/repoScan.js';
 import { mineHistory } from '../../advisor/historyMiner.js';
-import { suggestRules } from '../../advisor/suggest.js';
+import { suggestRules, generateSuggestionsWithML } from '../../advisor/suggest.js';
 import type { RuleSuggestion } from '../../advisor/types.js';
 import type { Rule } from '../../types/index.js';
 
@@ -98,8 +98,9 @@ export function register(program: Command): void {
     .command('advise [dir]')
     .description('Analyze repo and suggest missing or conflicting rules')
     .option('--json', 'Output suggestions as JSON')
+    .option('--ml', 'Use ML-powered semantic similarity (requires: pnpm add @xenova/transformers)')
     .option('--report-dir <dir>', 'Override .ruleprobe report directory')
-    .action(async (dir: string | undefined, options: { json?: boolean; reportDir?: string }) => {
+    .action(async (dir: string | undefined, options: { json?: boolean; ml?: boolean; reportDir?: string }) => {
       const targetDir = path.resolve(dir ?? process.cwd());
       const reportDir = options.reportDir
         ? path.resolve(options.reportDir)
@@ -121,6 +122,17 @@ export function register(program: Command): void {
 
       // 4. Generate suggestions
       const suggestions = suggestRules(scan, history, existingRules);
+
+      // 4b. ML-powered semantic duplicate/conflict detection
+      if (options.ml && existingRules.length > 0) {
+        if (!options.json) {
+          console.log(chalk.cyan('  Running ML semantic analysis…'));
+        }
+        const mlSuggestions = await generateSuggestionsWithML(existingRules);
+        for (const text of mlSuggestions) {
+          suggestions.push({ category: 'required_command', text, severity: 'medium', reason: 'Detected via ML semantic similarity.' });
+        }
+      }
 
       // 5. Handle JSON output
       if (options.json) {

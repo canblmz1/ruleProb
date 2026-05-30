@@ -1,6 +1,6 @@
 {
   "name": "ruleprobe-ai",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Test whether your repo AI instructions actually survive execution.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -101,7 +101,8 @@
     "react": "^18.3.1"
   },
   "optionalDependencies": {
-    "chart.js": "^4.5.1"
+    "chart.js": "^4.5.1",
+    "@xenova/transformers": "^2.17.2"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
