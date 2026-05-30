@@ -1,5 +1,5 @@
 import path from 'path';
-import { Config, EvaluationResult } from '../types/index.js';
+import { Config, EvaluationResult, Rule } from '../types/index.js';
 import { collectLimitationNotes, collectResultLimitationNotes, LimitationNote } from './limitations.js';
 
 export interface ChangedSnippet {
@@ -46,11 +46,32 @@ export interface ProofFriendlyShareBlock {
   markdown: string;
 }
 
+export interface UnverifiableRuleSummary {
+  text: string;
+  reason: string;
+  sourceFile: string;
+  lineNumber?: number;
+}
+
+const UNVERIFIABLE_REASON_LABELS: Record<string, string> = {
+  'internal-reasoning': 'Internal reasoning — cannot observe an agent\'s thought process',
+  'subjective-style': 'Subjective style — no objective pass/fail criterion',
+  'multi-turn-context': 'Multi-turn context — depends on prior conversation state',
+  'requires-human-judgment': 'Requires human judgment — depends on external codebase context',
+  'process-attitude': 'Process/attitude — describes desired behavior, not a measurable outcome',
+  'informational': 'Informational — provides context, not a testable constraint',
+};
+
+export function unverifiableReasonLabel(reason: string): string {
+  return UNVERIFIABLE_REASON_LABELS[reason] ?? reason;
+}
+
 export interface CoverageModel {
   totalScenarios: number;
   evaluated: number;
   skipped: number;
   effectivePct: number;
+  unverifiableRules: UnverifiableRuleSummary[];
 }
 
 export interface ReportProofModel {
@@ -66,15 +87,23 @@ export interface ReportProofModel {
 
 const SEVERITY_WEIGHTS: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
-export function buildCoverageModel(results: EvaluationResult[]): CoverageModel {
+export function buildCoverageModel(results: EvaluationResult[], allRules?: Rule[]): CoverageModel {
   const totalScenarios = results.length;
   const skipped = results.filter(r => r.status === 'SKIPPED').length;
   const evaluated = totalScenarios - skipped;
   const effectivePct = totalScenarios > 0 ? Math.round((evaluated / totalScenarios) * 100) : 0;
-  return { totalScenarios, evaluated, skipped, effectivePct };
+  const unverifiableRules: UnverifiableRuleSummary[] = (allRules ?? [])
+    .filter(r => !r.testable && r.unverifiableReason && r.unverifiableReason !== 'informational')
+    .map(r => ({
+      text: r.text,
+      reason: r.unverifiableReason!,
+      sourceFile: r.sourceFile,
+      lineNumber: r.lineNumber,
+    }));
+  return { totalScenarios, evaluated, skipped, effectivePct, unverifiableRules };
 }
 
-export function buildReportProofModel(results: EvaluationResult[], config: Config, weights?: Record<string, number>): ReportProofModel {
+export function buildReportProofModel(results: EvaluationResult[], config: Config, weights?: Record<string, number>, allRules?: Rule[]): ReportProofModel {
   const scorable = results.filter(r => r.status !== 'SKIPPED');
   const overallScore = scorable.length > 0
     ? Math.round(scorable.reduce((acc, result) => acc + result.score, 0) / scorable.length)
@@ -83,7 +112,7 @@ export function buildReportProofModel(results: EvaluationResult[], config: Confi
 
   const effectiveWeights = weights ?? SEVERITY_WEIGHTS;
   const scoreBreakdown = computeWeightedScore(results, effectiveWeights);
-  const coverage = buildCoverageModel(results);
+  const coverage = buildCoverageModel(results, allRules);
   const failureGroups = groupFailures(results);
   const crossTab = buildCrossTab(results, effectiveWeights);
   const knownLimitations = collectLimitationNotes(results, config);

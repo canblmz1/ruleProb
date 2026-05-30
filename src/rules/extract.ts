@@ -81,6 +81,16 @@ function extractAllFromFrag(frag: string, sourceFile: string, lineNumber: number
     lowerFrag.includes('do not commit') ||
     lowerFrag.includes("don't commit") ||
     lowerFrag.includes('never commit');
+  // Check for subjective/unverifiable patterns before the KEYWORD_REGEX gate,
+  // because these phrases rarely contain action keywords but are still meaningful.
+  const earlyUnverifiableReason = detectUnverifiableReason(frag);
+  if (earlyUnverifiableReason) {
+    const uRule = createRule(sourceFile, lineNumber, rawLine, frag, 'informational', 'low', [{ type: 'unknown', value: frag }]);
+    uRule.testable = false;
+    uRule.unverifiableReason = earlyUnverifiableReason;
+    return [uRule];
+  }
+
   if (!KEYWORD_REGEX.test(frag) && !frag.includes('`') && !frag.includes('mention') && !frag.includes('pnpm') && !frag.includes('npm') && !hasCommitNegation) {
     return [];
   }
@@ -100,6 +110,7 @@ function extractAllFromFrag(frag: string, sourceFile: string, lineNumber: number
   if (isInformational) {
     const infoRule = createRule(sourceFile, lineNumber, rawLine, frag, 'final_answer_required', 'low', [{ type: 'final_answer_contains', text: 'informational' }]);
     infoRule.testable = false;
+    infoRule.unverifiableReason = 'informational';
     rules.push(infoRule);
     return rules;
   }
@@ -109,6 +120,44 @@ function extractAllFromFrag(frag: string, sourceFile: string, lineNumber: number
   rules.push(...extractCodePatternRules(frag, sourceFile, lineNumber, rawLine));
   rules.push(...extractFileChangeRules(frag, sourceFile, lineNumber, rawLine));
   return rules;
+}
+
+/**
+ * Returns a short reason string if the rule cannot be verified by any provider,
+ * or undefined if the rule is potentially testable.
+ */
+function detectUnverifiableReason(frag: string): string | undefined {
+  const lower = frag.toLowerCase();
+
+  if (/\bthink\s+(step[- ]by[- ]step|carefully|before|through|deeply|first)\b/i.test(frag) ||
+      /\breason\s+(carefully|step[- ]by[- ]step|through)\b/i.test(frag) ||
+      /\bchain[\s-]of[\s-]thought\b/i.test(frag)) {
+    return 'internal-reasoning';
+  }
+
+  if (/\b(be|write|stay|remain)\s+(concise|brief|succinct|terse)\b/i.test(frag) ||
+      /\b(be|stay|sound)\s+(professional|polite|friendly|helpful|formal|informal)\b/i.test(frag) ||
+      /\bwrite\s+(clean|readable|maintainable|good|quality)\s+code\b/i.test(frag) ||
+      /\b(meaningful|descriptive|clear)\s+(names|variable names|function names)\b/i.test(frag)) {
+    return 'subjective-style';
+  }
+
+  if (/\b(remember|recall|keep in mind|as (discussed|mentioned|agreed)|from (our|the) (previous|last|prior))\b/i.test(frag)) {
+    return 'multi-turn-context';
+  }
+
+  if (/\b(match|follow|mimic|copy|mirror)\s+(the\s+)?(existing|surrounding|team|project|codebase|repo)\s+(\w+\s+)?(style|patterns?|conventions?|approach|format)\b/i.test(frag) ||
+      /\b(follow|use)\s+(team|project|codebase|repo)\s+(conventions?|standards?|patterns?|style)\b/i.test(frag) ||
+      /\blook\s+at\s+surrounding\s+code\b/i.test(frag)) {
+    return 'requires-human-judgment';
+  }
+
+  if (/\b(focus\s+on\s+(quality|correctness)|take\s+your\s+time|be\s+careful|double[- ]check)\b/i.test(frag) &&
+      !/\brun\b/i.test(frag)) {
+    return 'process-attitude';
+  }
+
+  return undefined;
 }
 
 function extractPackageManagerRules(line: string, sourceFile: string, lineNumber: number, rawLine: string): Rule[] {

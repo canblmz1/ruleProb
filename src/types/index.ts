@@ -53,6 +53,8 @@ export interface Rule {
   category: RuleCategory;
   severity: "low" | "medium" | "high";
   testable: boolean;
+  /** Set when testable=false to explain why no provider can verify this rule. */
+  unverifiableReason?: string;
   assertions: Assertion[];
 }
 
