@@ -466,7 +466,45 @@ function parseProviderRulesPayload(jsonText: string, kind: ProviderKind): { succ
     }
   }
 
+  // Last resort: try to repair truncated JSON (common with streamed responses)
+  tried.push('truncation-repair');
+  const repairTarget = jsonMatch?.[0] ?? content;
+  try {
+    const repaired = repairTruncatedJson(cleanJson(repairTarget));
+    const block = JSON.parse(repaired);
+    if (Array.isArray(block?.rules) && block.rules.length > 0) {
+      return { success: true, block, tried, preview: content };
+    }
+  } catch (e) {
+    lastError = e;
+  }
+
   return { success: false, block: null, tried, preview: content, error: lastError ? String(lastError) : undefined };
+}
+
+function repairTruncatedJson(str: string): string {
+  let braces = 0;
+  let brackets = 0;
+  let inString = false;
+  let escape = false;
+
+  for (const ch of str) {
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') braces++;
+    else if (ch === '}') braces = Math.max(0, braces - 1);
+    else if (ch === '[') brackets++;
+    else if (ch === ']') brackets = Math.max(0, brackets - 1);
+  }
+
+  if (braces === 0 && brackets === 0) return str;
+
+  let repaired = str.trimEnd().replace(/,\s*$/, '');
+  while (brackets > 0) { repaired += ']'; brackets--; }
+  while (braces > 0) { repaired += '}'; braces--; }
+  return repaired;
 }
 
 function cleanJson(str: string): string {
