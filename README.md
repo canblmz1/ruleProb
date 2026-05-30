@@ -136,6 +136,32 @@ Open `.ruleprobe/report.html` in your browser after any run.
 
 ---
 
+## Language Bindings
+
+Thin HTTP clients built on `ruleprobe serve`:
+
+```bash
+# Python
+pip install ruleprobe-client
+```
+
+```python
+from ruleprobe_client import RuleProbeClient
+client = RuleProbeClient("http://localhost:3000")
+print(f"Score: {client.score('.')}/100")
+```
+
+```go
+// Go
+import "github.com/canblmz1/ruleprobe-go/ruleprobe"
+client := ruleprobe.New("")
+score, _ := client.Score(".", "mock")
+```
+
+See [`clients/python/`](clients/python/) and [`clients/go/`](clients/go/) for full docs.
+
+---
+
 ## Providers
 
 ```bash
