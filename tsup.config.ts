@@ -8,14 +8,20 @@ export default defineConfig([
     clean: true,
     dts: true,
     outDir: 'dist',
-    banner: { js: '#!/usr/bin/env node' }
+    banner: { js: '#!/usr/bin/env node' },
+    esbuildOptions(options) {
+      options.jsx = 'automatic';
+    }
   },
   {
     entry: { 'index': 'src/index.ts' },
     format: ['esm'],
     target: 'node18',
     dts: true,
-    outDir: 'dist'
+    outDir: 'dist',
+    esbuildOptions(options) {
+      options.jsx = 'automatic';
+    }
   },
   {
     entry: {
@@ -26,6 +32,9 @@ export default defineConfig([
     format: ['esm'],
     target: 'node18',
     dts: true,
-    outDir: 'dist'
+    outDir: 'dist',
+    esbuildOptions(options) {
+      options.jsx = 'automatic';
+    }
   }
 ]);

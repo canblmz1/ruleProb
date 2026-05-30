@@ -1,6 +1,6 @@
 {
   "name": "ruleprobe-ai",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Test whether your repo AI instructions actually survive execution.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -95,8 +95,10 @@
     "execa": "^8.0.1",
     "fast-glob": "^3.3.2",
     "fs-extra": "^11.2.0",
+    "ink": "^5.2.1",
     "js-yaml": "^4.1.1",
-    "minimatch": "^9.0.3"
+    "minimatch": "^9.0.3",
+    "react": "^18.3.1"
   },
   "optionalDependencies": {
     "chart.js": "^4.5.1"
@@ -105,6 +107,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.24",
+    "@types/react": "^18.3.29",
     "@typescript-eslint/eslint-plugin": "^8.59.2",
     "@typescript-eslint/parser": "^8.59.2",
     "eslint": "^10.3.0",
