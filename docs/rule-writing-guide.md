@@ -4,6 +4,24 @@ RuleProbe extracts testable rules from your instruction files using a determinis
 
 ---
 
+## Verifiable vs Unverifiable Rules
+
+RuleProbe automatically detects rules it cannot test. A rule is **verifiable** if a provider's output can be checked against a concrete criterion. A rule is **unverifiable** if it requires subjective judgment, internal reasoning inspection, or multi-turn context.
+
+| Type | Example | Why unverifiable | How to fix |
+|---|---|---|---|
+| Internal reasoning | "Think step by step" | Can't observe thought process | Remove or make the output constraint explicit |
+| Subjective style | "Be concise" | No objective pass/fail | Replace with "Response must be under 500 words" |
+| Multi-turn context | "Remember our previous discussion" | No prior turn in sandbox | Document in a separate working-context file |
+| Human judgment | "Match the existing code style" | Needs codebase read | Make it concrete: "Use 2-space indentation, no semicolons" |
+| Process/attitude | "Take your time" | No measurable outcome | Drop it — it doesn't constrain agent behavior |
+
+**Rule of thumb:** if you can write a test that passes or fails without human judgment, the rule is verifiable.
+
+Unverifiable rules are shown in `ruleprobe list-rules` with a warning, and in the Markdown report under "Unverifiable Rules".
+
+---
+
 ## How extraction works
 
 RuleProbe reads bullet-point lines (lines starting with `-`, `*`, or `1.`) and looks for action keywords:
