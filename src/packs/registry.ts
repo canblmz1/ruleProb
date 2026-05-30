@@ -69,6 +69,64 @@ export const BUILT_IN_PACKS: Record<string, RulePack> = {
       '- ALWAYS write descriptive commit messages (not just "fix" or "update").',
     ]
   },
+  'nextjs': {
+    name: 'nextjs',
+    description: 'Next.js project rules: pnpm, typecheck, file protection, no console.log',
+    tags: ['nextjs', 'react', 'typescript', 'frontend'],
+    rules: [
+      '- ALWAYS use pnpm. Never use npm or yarn.',
+      '- NEVER run `next build` — use `pnpm build` only.',
+      '- Always run `pnpm typecheck` before submitting changes.',
+      '- Always run `pnpm lint` before the final response.',
+      '- Never modify `next.config.js` without explicit approval.',
+      '- Never modify files under `src/generated/`.',
+      '- Never use `any` in TypeScript. Use `unknown` or explicit types.',
+      '- Never use `console.log` in production code. Use `logger` from `@/lib/logger`.',
+    ]
+  },
+  'rust': {
+    name: 'rust',
+    description: 'Rust/Cargo rules: clippy, fmt, no unwrap in library code',
+    tags: ['rust', 'cargo', 'systems'],
+    rules: [
+      '- Use `cargo` for all Rust operations.',
+      '- NEVER run `cargo publish` without approval.',
+      '- Always run `cargo test` before finishing.',
+      '- Always run `cargo clippy -- -D warnings` before the final response.',
+      '- Always run `cargo fmt --check` to verify formatting.',
+      '- Never modify `Cargo.toml` version field without approval.',
+      '- Never use `unwrap()` in library code. Use `?` or explicit error handling.',
+      '- Never use `unsafe` without a safety comment explaining why.',
+    ]
+  },
+  'python': {
+    name: 'python',
+    description: 'Python project rules: pip/uv, type hints, no bare except',
+    tags: ['python', 'pip', 'types'],
+    rules: [
+      '- Use `uv` or `pip` for package management — never mix both in one project.',
+      '- NEVER run `pip install` without a virtual environment active.',
+      '- Always run `pytest` before finishing.',
+      '- Always run `mypy` or `pyright` before the final response.',
+      '- Always run `ruff check` or `flake8` for linting.',
+      '- Never use bare `except:` — always catch specific exception types.',
+      '- Never use `print()` for logging in production code. Use `logging.getLogger`.',
+      '- Always include type hints on public function signatures.',
+    ]
+  },
+  'docker': {
+    name: 'docker',
+    description: 'Docker/container rules: no latest tag, no root user, multi-stage builds',
+    tags: ['docker', 'containers', 'devops', 'security'],
+    rules: [
+      '- NEVER use `latest` as an image tag in production Dockerfiles — pin to a specific version.',
+      '- NEVER run containers as root in production — add a non-root USER instruction.',
+      '- Always use multi-stage builds to minimize final image size.',
+      '- Never store secrets or credentials in Dockerfile ENV instructions.',
+      '- Always add `.dockerignore` to exclude `node_modules`, `.git`, and `.env` files.',
+      '- Do not run `docker push` without explicit approval.',
+    ]
+  },
 };
 
 export function listPacks(): RulePack[] {

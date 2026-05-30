@@ -144,6 +144,8 @@ export interface Config {
   baseline?: boolean;
   /** Exit with code 1 if any scenario regressed vs baseline */
   failOnRegression?: boolean;
+  /** Number of scenarios to run concurrently (default: 1 = sequential) */
+  parallel?: number;
 }
 
 export interface WriteFileAction {

@@ -54,6 +54,7 @@ export function register(program: Command): void {
     .option('--no-custom-scenarios', 'Skip loading .ruleprobe/scenarios.yaml')
     .option('--adaptive-weights', 'Boost severity weights for high-failure categories based on run history')
     .option('--live', 'Stream sandbox file-change and command-execution events to terminal in real time')
+    .option('--parallel <n>', 'Run N scenarios concurrently (default: 1 = sequential)', '1')
     .action(async (dir, options) => {
       const runId = Date.now();
 
@@ -87,6 +88,7 @@ export function register(program: Command): void {
         process.exit(1);
       }
       if (options.lang) baseConfig.lang = options.lang;
+      if (options.parallel) baseConfig.parallel = Math.max(1, parseInt(options.parallel, 10));
 
       const providerList = options.providers
         ? String(options.providers).split(/[,\s]+/).map((p: string) => p.trim()).filter(Boolean)
@@ -237,8 +239,9 @@ async function executeRun(
   }
 
   const results: EvaluationResult[] = [];
+  const concurrency = config.parallel ?? 1;
 
-  for (const scenario of allScenarios) {
+  async function runScenario(scenario: (typeof allScenarios)[number]): Promise<EvaluationResult> {
     const sandboxDir = await createSandbox(scenario);
 
     let stopWatcher: (() => void) | undefined;
@@ -257,7 +260,6 @@ async function executeRun(
     const providerResult = normalizeProviderResult(rawProviderResult);
 
     if (opts.live) {
-      // Emit command_exec events post-hoc (commands already ran inside provider.run)
       for (const cmd of (providerResult.commands ?? [])) {
         globalEventBus.emit({
           type: 'command_exec',
@@ -278,24 +280,40 @@ async function executeRun(
     }
 
     const evalResult = await evaluateResult(scenario, providerResult);
-    results.push(evalResult);
 
     const statusColor = evalResult.status === 'PASS' || evalResult.status === 'SKIPPED' ? chalk.green : evalResult.status === 'PARTIAL' ? chalk.yellow : chalk.red;
     console.log(`${statusColor(evalResult.status.padEnd(7))} ${scenario.title}`);
 
-    const firstAssertion = scenario.expectedAssertions[0];
-    if (firstAssertion) {
-       const expectedVal = (firstAssertion as any).value || (firstAssertion as any).manager || (firstAssertion as any).commandIncludes || (firstAssertion as any).pattern || (firstAssertion as any).text || firstAssertion.type;
-       console.log(`      Expected: ${expectedVal}`);
+    if (concurrency === 1) {
+      const firstAssertion = scenario.expectedAssertions[0];
+      if (firstAssertion) {
+        const expectedVal = (firstAssertion as any).value || (firstAssertion as any).manager || (firstAssertion as any).commandIncludes || (firstAssertion as any).pattern || (firstAssertion as any).text || firstAssertion.type;
+        console.log(`      Expected: ${expectedVal}`);
+      }
+      if (evalResult.assertionResults.length > 0) {
+        console.log(`      Actual: ${evalResult.assertionResults[0].evidence}`);
+      }
+      console.log('');
     }
-    if (evalResult.assertionResults.length > 0) {
-      console.log(`      Actual: ${evalResult.assertionResults[0].evidence}`);
-    }
-    console.log('');
 
     if (!config.keepSandbox) {
       await cleanupSandbox(sandboxDir);
     }
+
+    return evalResult;
+  }
+
+  if (concurrency <= 1) {
+    for (const scenario of allScenarios) {
+      results.push(await runScenario(scenario));
+    }
+  } else {
+    console.log(chalk.dim(`  Parallel mode: ${concurrency} concurrent scenarios\n`));
+    const completed = await runWithConcurrency(
+      allScenarios.map(s => () => runScenario(s)),
+      concurrency
+    );
+    results.push(...completed);
   }
 
   const scorableResults = results.filter(r => r.status !== 'SKIPPED');
@@ -507,6 +525,25 @@ async function writeComparisonReport(
   const htmlPath = path.join(config.reportDir, `comparison-${runId}.html`);
   await fs.writeFile(htmlPath, htmlLines.join('\n'), 'utf-8');
   console.log(chalk.green(`Comparison HTML report written: ${htmlPath}`));
+}
+
+/**
+ * Simple concurrency limiter — runs tasks with at most `concurrency` running at once.
+ * No external dependencies: implemented as a self-refilling worker pool.
+ */
+async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, concurrency: number): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let next = 0;
+
+  async function worker(): Promise<void> {
+    while (next < tasks.length) {
+      const idx = next++;
+      results[idx] = await tasks[idx]();
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, worker));
+  return results;
 }
 
 // Avoid circular import: inline lightweight proof model builder for history

@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import jsYaml from 'js-yaml';
 
-const CI_WORKFLOW = `name: RuleProbe Compliance
+const CI_WORKFLOW_GITHUB = `name: RuleProbe Compliance
 
 on:
   push:
@@ -20,12 +20,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: canblmz1/ruleProb@v1.6.0
+      - uses: actions/setup-node@v4
         with:
-          dir: .
-          provider: mock
-          fail-below: '70'
-          comment: 'true'
+          node-version: '20'
+      - name: Run RuleProbe
+        run: npx ruleprobe-ai@latest run . --provider mock --fail-below 70
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruleprobe-report
+          path: .ruleprobe/report.md
+          if-no-files-found: ignore
+`;
+
+const CI_WORKFLOW_GITLAB = `ruleprobe:
+  stage: test
+  image: node:20
+  script:
+    - npx ruleprobe-ai@latest run . --provider mock --fail-below 70
+  artifacts:
+    when: always
+    paths:
+      - .ruleprobe/report.md
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 `;
 
 export interface SeedRule {
@@ -170,6 +191,7 @@ export function register(program: Command): void {
     .option('--from-claude', 'Auto-detect instruction files (CLAUDE.md, AGENTS.md, .cursor/rules, etc.) from the target directory')
     .option('--provider <name>', 'Default provider for the generated config (default: mock)', 'mock')
     .option('--with-ci', 'Generate a GitHub Actions workflow file in the target directory')
+    .option('--ci <platform>', 'Generate CI config: github-actions (default) | gitlab')
     .option('--interactive', 'Run an interactive wizard to configure rules')
     .action(async (dir: string | undefined, options) => {
       const targetDir = dir ? path.resolve(dir) : process.cwd();
@@ -197,13 +219,24 @@ export function register(program: Command): void {
       }, null, 2));
       console.log(chalk.green(`Initialized ${configPath} with minimal config`));
 
-      if (options.withCi) {
-        const workflowDir = path.join(targetDir, '.github', 'workflows');
-        await fs.ensureDir(workflowDir);
-        const workflowPath = path.join(workflowDir, 'ruleprobe-compliance.yml');
-        await fs.writeFile(workflowPath, CI_WORKFLOW, 'utf-8');
-        console.log(chalk.green(`Created ${workflowPath}`));
-        console.log(chalk.dim(`  Edit the workflow to set your preferred provider and fail-below threshold.`));
+      const ciPlatform = options.ci ?? (options.withCi ? 'github-actions' : null);
+      if (ciPlatform) {
+        if (ciPlatform === 'gitlab') {
+          const ciPath = path.join(targetDir, '.gitlab-ci.yml');
+          const existing = (await fs.pathExists(ciPath)) ? await fs.readFile(ciPath, 'utf-8') : '';
+          const block = existing ? `\n# --- RuleProbe Compliance ---\n${CI_WORKFLOW_GITLAB}` : CI_WORKFLOW_GITLAB;
+          await fs.appendFile(ciPath, block, 'utf-8');
+          console.log(chalk.green(`Created/updated ${ciPath}`));
+          console.log(chalk.dim(`  Edit the job to set your preferred provider and fail-below threshold.`));
+        } else {
+          // github-actions (default)
+          const workflowDir = path.join(targetDir, '.github', 'workflows');
+          await fs.ensureDir(workflowDir);
+          const workflowPath = path.join(workflowDir, 'ruleprobe-compliance.yml');
+          await fs.writeFile(workflowPath, CI_WORKFLOW_GITHUB, 'utf-8');
+          console.log(chalk.green(`Created ${workflowPath}`));
+          console.log(chalk.dim(`  Edit the workflow to set your preferred provider and fail-below threshold.`));
+        }
       }
 
       // Interactive wizard
