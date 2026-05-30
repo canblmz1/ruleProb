@@ -99,5 +99,15 @@ export function register(program: Command): void {
         Testable: r.testable,
         Rule: r.text.length > 50 ? r.text.substring(0, 47) + '...' : r.text
       })));
+
+      const unverifiable = allRules.filter(r => !r.testable && r.unverifiableReason && r.unverifiableReason !== 'informational');
+      if (unverifiable.length > 0) {
+        console.log(chalk.yellow(`\n${unverifiable.length} unverifiable rule(s) detected (excluded from testing):`));
+        for (const r of unverifiable) {
+          console.log(chalk.gray(`  • ${r.text.slice(0, 80)}${r.text.length > 80 ? '…' : ''}`));
+          console.log(chalk.dim(`    Reason: ${r.unverifiableReason}`));
+        }
+        console.log(chalk.dim('\n  Tip: Rewrite as concrete, measurable constraints to make them testable.'));
+      }
     });
 }

@@ -1,11 +1,11 @@
-import { EvaluationResult, Config } from '../types/index.js';
+import { EvaluationResult, Config, Rule } from '../types/index.js';
 import fs from 'fs-extra';
 import path from 'path';
-import { buildReportProofModel, formatChangedFiles, formatSource, getChangedSnippets, resultLimitationMessages, CrossTab, CoverageModel } from './proof.js';
+import { buildReportProofModel, formatChangedFiles, formatSource, getChangedSnippets, resultLimitationMessages, CrossTab, CoverageModel, unverifiableReasonLabel } from './proof.js';
 import { BaselineDelta } from '../baseline/compare.js';
 
-export async function writeMarkdownReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta, weights?: Record<string, number>) {
-  const proof = buildReportProofModel(results, config, weights);
+export async function writeMarkdownReport(results: EvaluationResult[], config: Config, delta?: BaselineDelta, weights?: Record<string, number>, allRules?: Rule[]) {
+  const proof = buildReportProofModel(results, config, weights, allRules);
 
   const lines = [
     '# RuleProbe Report',
@@ -152,11 +152,27 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
 }
 
 function formatCoverage(coverage: CoverageModel): string[] {
-  return [
+  const out = [
     '## Rule Coverage',
     `- Scenarios evaluated: ${coverage.evaluated}/${coverage.totalScenarios} (${coverage.effectivePct}%)`,
-    `- Skipped: ${coverage.skipped}`
+    `- Skipped: ${coverage.skipped}`,
   ];
+  if (coverage.unverifiableRules && coverage.unverifiableRules.length > 0) {
+    out.push('');
+    out.push(`### Unverifiable Rules (${coverage.unverifiableRules.length})`);
+    out.push('');
+    out.push('These rules were found in your instruction files but cannot be verified by any provider:');
+    out.push('');
+    for (const r of coverage.unverifiableRules) {
+      const src = r.lineNumber ? `${r.sourceFile}:${r.lineNumber}` : r.sourceFile;
+      out.push(`- **\`${r.text.slice(0, 80)}${r.text.length > 80 ? '…' : ''}\`**`);
+      out.push(`  - Reason: ${unverifiableReasonLabel(r.reason)}`);
+      out.push(`  - Source: ${src}`);
+    }
+    out.push('');
+    out.push('> **Tip:** Rewrite subjective rules as concrete, measurable constraints to make them testable.');
+  }
+  return out;
 }
 
 function formatFailureGroups(groups: ReturnType<typeof buildReportProofModel>['failureGroups']): string[] {

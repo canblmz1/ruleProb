@@ -348,7 +348,7 @@ async function executeRun(
     }
 
     await writeJsonReport(results, config, delta, finalWeights);
-    await writeMarkdownReport(results, config, delta, finalWeights);
+    await writeMarkdownReport(results, config, delta, finalWeights, rules);
     await writeHtmlReport(results, config, delta, finalWeights);
     const sarifPath = await writeSarifReport(results, config);
     const junitPath = await writeJUnitReport(results, config);
