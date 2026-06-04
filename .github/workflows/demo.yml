@@ -68,3 +68,4 @@ jobs:
         with:
           commit_message: "docs: update demo GIF [skip ci]"
           file_pattern: "docs/demo.gif"
+          push_options: "--force-with-lease"
