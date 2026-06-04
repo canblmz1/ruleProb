@@ -9,6 +9,7 @@ export default defineConfig([
     dts: true,
     outDir: 'dist',
     banner: { js: '#!/usr/bin/env node' },
+    external: ['@xenova/transformers', 'sharp', 'onnxruntime-node'],
     esbuildOptions(options) {
       options.jsx = 'automatic';
     }
@@ -19,6 +20,7 @@ export default defineConfig([
     target: 'node18',
     dts: true,
     outDir: 'dist',
+    external: ['@xenova/transformers', 'sharp', 'onnxruntime-node'],
     esbuildOptions(options) {
       options.jsx = 'automatic';
     }
@@ -33,6 +35,7 @@ export default defineConfig([
     target: 'node18',
     dts: true,
     outDir: 'dist',
+    external: ['@xenova/transformers', 'sharp', 'onnxruntime-node'],
     esbuildOptions(options) {
       options.jsx = 'automatic';
     }
