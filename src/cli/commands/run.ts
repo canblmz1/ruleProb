@@ -156,7 +156,7 @@ export function register(program: Command): void {
     });
 }
 
-async function executeRun(
+export async function executeRun(
   config: Config,
   providerName: string,
   opts: { writeReports?: boolean; generateBadge?: boolean; demoMode?: boolean; loadCustomScenarios?: boolean; adaptiveWeights?: boolean; live?: boolean; filterCategories?: string[]; quiet?: boolean } = {}
