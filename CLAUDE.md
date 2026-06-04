@@ -1,14 +1,17 @@
 # CLAUDE.md
 
 ## 1. Project Overview
-RuleProbe is a CLI tool for extracting, testing, and validating repository rules from instruction files (CLAUDE.md, AGENTS.md, .cursor/rules, Copilot, etc). It generates testable rules, creates sandbox scenarios, runs multiple providers (mock, dry-run, openrouter, gemini, claude-code, anthropic, openai, ollama), and evaluates agent behavior against repo rules. Current version: **v1.7.0**. Core is stable; AI extraction and hybrid flows are still brittle.
+RuleProbe is a CLI tool for extracting, testing, and validating repository rules from instruction files (CLAUDE.md, AGENTS.md, .cursor/rules, Copilot, etc). It generates testable rules, creates sandbox scenarios, runs multiple providers (mock, dry-run, openrouter, gemini, claude-code, anthropic, openai, ollama, local), and evaluates agent behavior against repo rules. Current version: **v2.12.0**. Core is stable; AI extraction and hybrid flows are still brittle.
 
 ## 2. Architecture Summary
 - CLI entry: src/cli/index.ts
 - Discovery: src/config/load.ts
 - Extraction: src/rules/extract.ts (deterministic), src/extractors/aiAssisted.ts (AI/hybrid)
 - Scenario generation: src/scenarios/generate.ts
-- Providers: src/providers/* (mock, dry-run, openrouter, gemini, claude-code, anthropic, openai, ollama)
+- Providers: src/providers/* (mock, dry-run, openrouter, gemini, claude-code, anthropic, openai, ollama/local)
+- Matrix command: src/cli/commands/matrix.ts + src/matrix/build.ts + src/reporters/matrix.ts
+- Rule optimizer: src/optimize/* (detect.ts, rewrite.ts) + src/history/ruleHistory.ts
+- Sandbox capture: src/actions/execute.ts captureMode + VirtualOp type
 - Evaluation: src/evaluator/score.ts
 - Reporting: src/reporters/* (json, markdown, html, sarif, junit, pr-comment)
 - Advisor (v1.8.0+): src/advisor/* (repoScan, historyMiner, suggest)
