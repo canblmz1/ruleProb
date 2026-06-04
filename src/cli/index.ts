@@ -28,6 +28,7 @@ import { register as registerAdvise } from './commands/advise.js';
 import { register as registerServe } from './commands/serve.js';
 import { register as registerGui } from './commands/gui.js';
 import { register as registerMatrix } from './commands/matrix.js';
+import { register as registerOptimize } from './commands/optimize.js';
 
 const program = new Command();
 
@@ -60,5 +61,6 @@ registerAdvise(program);
 registerServe(program);
 registerGui(program);
 registerMatrix(program);
+registerOptimize(program);
 
 program.parse(process.argv);

@@ -22,6 +22,7 @@ import { writeJUnitReport } from '../../reporters/junit.js';
 import { writePrCommentReport } from '../../reporters/prComment.js';
 import { writeBadgeFiles, writeShieldsEndpoint } from '../../badge/generate.js';
 import { appendHistory } from '../../history/track.js';
+import { appendRuleHistory } from '../../history/ruleHistory.js';
 import { readBaseline, writeBaseline, computeBaselineDelta, formatBaselineDelta, BaselineDelta } from '../../baseline/compare.js';
 import { EvaluationResult, Provider, Config } from '../../types/index.js';
 import { startLiveReporter, watchSandbox, globalEventBus } from '../../live/index.js';
@@ -393,6 +394,8 @@ export async function executeRun(
       failed: results.filter(r => r.status === 'FAIL').length,
       skipped: results.filter(r => r.status === 'SKIPPED').length
     }, config);
+
+    await appendRuleHistory(results, config);
 
     if (opts.generateBadge) {
       const { scorePath, trendPath } = await writeBadgeFiles(finalScore, trend.history[trend.history.length - 1]?.weightedScore || finalScore, trend, config);

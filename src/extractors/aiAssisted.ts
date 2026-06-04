@@ -482,7 +482,7 @@ function parseProviderRulesPayload(jsonText: string, kind: ProviderKind): { succ
   return { success: false, block: null, tried, preview: content, error: lastError ? String(lastError) : undefined };
 }
 
-function repairTruncatedJson(str: string): string {
+export function repairTruncatedJson(str: string): string {
   let braces = 0;
   let brackets = 0;
   let inString = false;
@@ -507,7 +507,7 @@ function repairTruncatedJson(str: string): string {
   return repaired;
 }
 
-function cleanJson(str: string): string {
+export function cleanJson(str: string): string {
   let cleaned = str.trim();
   cleaned = cleaned.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
   cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
