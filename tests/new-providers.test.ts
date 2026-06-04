@@ -193,26 +193,40 @@ test('OpenAIProvider respects model override', async () => {
 
 // ── OllamaProvider ────────────────────────────────────────────────────────────
 
-test('OllamaProvider uses localhost:11434 by default', async () => {
-  (getEnv as any).mockReturnValue(undefined);
-
-  const originalFetch = global.fetch;
-  let capturedUrl = '';
-
-  global.fetch = async (url: any, options: any) => {
-    capturedUrl = url.toString();
+// Helper: mock fetch that routes /api/tags (health) and /api/chat (inference)
+function makeOllamaFetchMock(opts: { captureUrl?: { value: string }; captureBody?: { value: any }; baseUrl?: string } = {}) {
+  return async (url: any, options: any) => {
+    const urlStr = url.toString();
+    if (urlStr.endsWith('/api/tags')) {
+      // health check — always return up with models
+      return {
+        ok: true, status: 200, statusText: 'OK',
+        json: async () => ({ models: [{ name: 'llama3.2' }, { name: 'mistral' }] }),
+      } as any;
+    }
+    // /api/chat
+    if (opts.captureUrl) opts.captureUrl.value = urlStr;
+    if (opts.captureBody && options?.body) opts.captureBody.value = JSON.parse(options.body as string);
     return {
       ok: true, status: 200, statusText: 'OK',
       text: async () => JSON.stringify({
         message: { content: JSON.stringify({ actions: [], finalAnswer: 'Ollama response' }) }
-      })
+      }),
     } as any;
   };
+}
+
+test('OllamaProvider uses localhost:11434 by default', async () => {
+  (getEnv as any).mockReturnValue(undefined);
+
+  const originalFetch = global.fetch;
+  const capturedUrl = { value: '' };
+  global.fetch = makeOllamaFetchMock({ captureUrl: capturedUrl }) as any;
 
   const provider = new OllamaProvider({ model: 'llama3.2' });
   const result = await provider.run({ scenario: STUB_SCENARIO, sandboxDir: 'tmp' });
 
-  expect(capturedUrl).toBe('http://localhost:11434/api/chat');
+  expect(capturedUrl.value).toBe('http://localhost:11434/api/chat');
   expect(result.success).toBe(true);
   expect(result.finalAnswer).toBe('Ollama response');
 
@@ -225,22 +239,13 @@ test('OllamaProvider respects OLLAMA_BASE_URL env override', async () => {
   );
 
   const originalFetch = global.fetch;
-  let capturedUrl = '';
-
-  global.fetch = async (url: any, _options: any) => {
-    capturedUrl = url.toString();
-    return {
-      ok: true, status: 200, statusText: 'OK',
-      text: async () => JSON.stringify({
-        message: { content: JSON.stringify({ actions: [], finalAnswer: 'ok' }) }
-      })
-    } as any;
-  };
+  const capturedUrl = { value: '' };
+  global.fetch = makeOllamaFetchMock({ captureUrl: capturedUrl }) as any;
 
   const provider = new OllamaProvider({ model: 'mistral' });
   await provider.run({ scenario: STUB_SCENARIO, sandboxDir: 'tmp' });
 
-  expect(capturedUrl).toBe('http://my-ollama:8080/api/chat');
+  expect(capturedUrl.value).toBe('http://my-ollama:8080/api/chat');
 
   global.fetch = originalFetch;
 });
@@ -249,23 +254,14 @@ test('OllamaProvider sends format:json and stream:false', async () => {
   (getEnv as any).mockReturnValue(undefined);
 
   const originalFetch = global.fetch;
-  let capturedBody: any = null;
-
-  global.fetch = async (_url: any, options: any) => {
-    capturedBody = JSON.parse(options.body as string);
-    return {
-      ok: true, status: 200, statusText: 'OK',
-      text: async () => JSON.stringify({
-        message: { content: JSON.stringify({ actions: [], finalAnswer: 'ok' }) }
-      })
-    } as any;
-  };
+  const capturedBody = { value: null as any };
+  global.fetch = makeOllamaFetchMock({ captureBody: capturedBody }) as any;
 
   const provider = new OllamaProvider({ model: 'llama3.2' });
   await provider.run({ scenario: STUB_SCENARIO, sandboxDir: 'tmp' });
 
-  expect(capturedBody.format).toBe('json');
-  expect(capturedBody.stream).toBe(false);
+  expect(capturedBody.value.format).toBe('json');
+  expect(capturedBody.value.stream).toBe(false);
 
   global.fetch = originalFetch;
 });
@@ -283,7 +279,8 @@ test('OllamaProvider handles connection error gracefully', async () => {
   const result = await provider.run({ scenario: STUB_SCENARIO, sandboxDir: 'tmp' });
 
   expect(result.success).toBe(false);
-  expect(result.rawOutput).toContain('ECONNREFUSED');
+  // Either "not reachable" (health check failed) or the raw ECONNREFUSED error
+  expect(result.rawOutput.toLowerCase()).toMatch(/not reachable|econnrefused/i);
 
   global.fetch = originalFetch;
 });

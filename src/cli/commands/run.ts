@@ -31,7 +31,7 @@ export function register(program: Command): void {
     .command('run')
     .description('Run all regression tests')
     .argument('[dir]', 'Directory to test')
-    .option('--provider <provider>', 'Provider to run tests with (mock, dry-run, claude-code, openrouter, gemini, opencode-go, anthropic, openai, ollama)')
+    .option('--provider <provider>', 'Provider to run tests with (mock, dry-run, claude-code, openrouter, gemini, opencode-go, anthropic, openai, ollama, local)')
     .option('--providers <list>', 'Comma-separated list of providers to compare (e.g., mock,gemini)')
     .option('--model <model>', 'Model to use for providers that support it')
     .option('--config <path>', 'Config file path')
@@ -235,13 +235,13 @@ export async function executeRun(
   } else if (providerName === 'openai') {
      const { OpenAIProvider } = await import('../../providers/openai.js');
      provider = new OpenAIProvider(config);
-  } else if (providerName === 'ollama') {
+  } else if (providerName === 'ollama' || providerName === 'local') {
      const { OllamaProvider } = await import('../../providers/ollama.js');
      provider = new OllamaProvider(config);
   } else if (providerName === 'mock') {
      provider = new MockProvider({ demoMode: opts.demoMode });
   } else {
-     const KNOWN_PROVIDERS = ['mock', 'dry-run', 'gemini', 'openrouter', 'claude-code', 'opencode-go', 'anthropic', 'openai', 'ollama'];
+     const KNOWN_PROVIDERS = ['mock', 'dry-run', 'gemini', 'openrouter', 'claude-code', 'opencode-go', 'anthropic', 'openai', 'ollama', 'local'];
      console.error(chalk.red(`Unknown provider: "${providerName}". Valid providers: ${KNOWN_PROVIDERS.join(', ')}`));
      process.exit(1);
   }

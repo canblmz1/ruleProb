@@ -3,6 +3,7 @@ import path from 'path';
 import { execa } from 'execa';
 import chalk from 'chalk';
 import { getEnv } from '../config/env.js';
+import { checkOllamaHealth } from '../providers/ollama.js';
 
 export interface DoctorCheck {
   name: string;
@@ -27,6 +28,7 @@ export async function runDoctor(options: { cwd?: string; json?: boolean } = {}):
   }
 
   checks.push(await checkRuleprobeWriteable(cwd));
+  checks.push(await checkOllamaStatus());
 
   const criticalFailures = checks.filter(check => check.status === 'FAIL').length;
   const summary = criticalFailures > 0
@@ -104,6 +106,24 @@ function checkEnvVar(name: string): DoctorCheck {
     name: `env ${name}`,
     status: 'WARN',
     detail: present ? 'present (value not displayed)' : 'not set'
+  };
+}
+
+async function checkOllamaStatus(): Promise<DoctorCheck> {
+  const baseUrl = getEnv('OLLAMA_BASE_URL') || 'http://localhost:11434';
+  const health = await checkOllamaHealth(baseUrl);
+  if (health.up) {
+    const modelCount = health.models.length;
+    return {
+      name: 'Ollama (local provider)',
+      status: 'PASS',
+      detail: `up at ${baseUrl} — ${modelCount} model(s) installed${modelCount > 0 ? `: ${health.models.slice(0, 3).join(', ')}${modelCount > 3 ? '…' : ''}` : ' (run `ollama pull llama3.2` to install one)'}`,
+    };
+  }
+  return {
+    name: 'Ollama (local provider)',
+    status: 'WARN',
+    detail: `not reachable at ${baseUrl} — start with \`ollama serve\` for zero-cost local testing`,
   };
 }
 
