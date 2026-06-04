@@ -77,6 +77,13 @@ export interface ProviderInput {
   sandboxDir: string;
 }
 
+export interface VirtualOp {
+  kind: 'command' | 'network' | 'filesystem';
+  detail: string;
+  classification: 'destructive' | 'network' | 'publish' | 'privilege' | 'other';
+  executed: boolean;
+}
+
 export interface ProviderResult {
   kind?: 'dry-run' | 'real';
   finalAnswer: string;
@@ -85,6 +92,7 @@ export interface ProviderResult {
   commands: string[];
   rawOutput: string;
   success: boolean;
+  virtualOps?: VirtualOp[];
 }
 
 export interface Provider {
@@ -146,6 +154,8 @@ export interface Config {
   failOnRegression?: boolean;
   /** Number of scenarios to run concurrently (default: 1 = sequential) */
   parallel?: number;
+  /** Record dangerous commands as virtual ops instead of hard-blocking */
+  captureMode?: boolean;
 }
 
 export interface WriteFileAction {
@@ -183,6 +193,7 @@ export interface ExecutorResult {
   commands: string[];
   errors: string[];
   evidence: string[];
+  virtualOps: VirtualOp[];
 }
 
 export interface CandidateRule extends Rule {

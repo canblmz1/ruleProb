@@ -134,6 +134,14 @@ export async function writeMarkdownReport(results: EvaluationResult[], config: C
       lines.push(`> **Fix:** ${result.suggestion}`);
       lines.push('');
     }
+    const vops = result.providerResult?.virtualOps;
+    if (vops && vops.length > 0) {
+      lines.push('🛡️ Virtual Operations Captured (not executed):');
+      for (const op of vops) {
+        lines.push(`- \`${op.detail}\` [${op.classification}]`);
+      }
+      lines.push('');
+    }
     const snippets = getChangedSnippets(result);
     if (snippets.length > 0) {
       lines.push('Changed Content Snippets:');

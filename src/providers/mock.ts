@@ -16,9 +16,11 @@ import { getChangedFileContents, getChangedFiles } from '../sandbox/create.js';
 export class MockProvider {
   name = 'mock';
   private demoMode: boolean;
+  private captureMode: boolean;
 
-  constructor(options: { demoMode?: boolean } = {}) {
+  constructor(options: { demoMode?: boolean; captureMode?: boolean } = {}) {
     this.demoMode = options.demoMode ?? false;
+    this.captureMode = options.captureMode ?? false;
   }
 
   async run(input: ProviderInput): Promise<ProviderResult> {
@@ -34,7 +36,8 @@ export class MockProvider {
       changedFileContents: {},
       commands: [],
       rawOutput: `Mock run completed deterministically. bucket=${bucket}`,
-      success: true
+      success: true,
+      virtualOps: [],
     };
 
     // Deterministic outcome map (normal mode):
@@ -141,6 +144,17 @@ export class MockProvider {
     const changedFiles = await getChangedFiles(sandboxDir);
     result.changedFiles = changedFiles;
     result.changedFileContents = await getChangedFileContents(sandboxDir, changedFiles);
+
+    // In capture mode, simulate a virtual op for forbidden_command scenarios
+    if (this.captureMode && category === 'forbidden_command') {
+      const cmd = (scenario.expectedAssertions[0] as any)?.commandIncludes ?? 'git push';
+      result.virtualOps = [{
+        kind: 'command',
+        detail: cmd,
+        classification: cmd.includes('push') || cmd.includes('publish') ? 'publish' : 'other',
+        executed: false,
+      }];
+    }
 
     return result;
   }

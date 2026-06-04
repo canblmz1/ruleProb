@@ -81,7 +81,7 @@ test('GeminiProvider uses default model and fetch is mockable', async () => {
   expect(result.finalAnswer).toBe("Gemini response");
   expect(fetchCalledWithModel).toBe("gemini-2.5-flash");
   expect(fetchBody.generationConfig.responseMimeType).toBe("application/json");
-  expect(executeActionPlan).toHaveBeenCalledWith("tmp", { actions: [], finalAnswer: "Gemini response" });
+  expect(executeActionPlan).toHaveBeenCalledWith("tmp", { actions: [], finalAnswer: "Gemini response" }, { captureMode: undefined });
   
   global.fetch = originalFetch;
 });
