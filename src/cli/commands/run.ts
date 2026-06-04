@@ -58,6 +58,7 @@ export function register(program: Command): void {
     .option('--parallel <n>', 'Run N scenarios concurrently (default: 1 = sequential)', '1')
     .option('--filter <categories>', 'Run only scenarios matching these categories (comma-separated, e.g. forbidden_command,required_command)')
     .option('--quiet', 'Suppress per-scenario output; print only the final score line')
+    .option('--capture', 'Record dangerous commands as virtual ops instead of hard-blocking (capture & analyze mode)')
     .action(async (dir, options) => {
       const runId = Date.now();
 
@@ -92,6 +93,7 @@ export function register(program: Command): void {
       }
       if (options.lang) baseConfig.lang = options.lang;
       if (options.parallel) baseConfig.parallel = Math.max(1, parseInt(options.parallel, 10));
+      if (options.capture) baseConfig.captureMode = true;
 
       const providerList = options.providers
         ? String(options.providers).split(/[,\s]+/).map((p: string) => p.trim()).filter(Boolean)
@@ -240,7 +242,7 @@ export async function executeRun(
      const { OllamaProvider } = await import('../../providers/ollama.js');
      provider = new OllamaProvider(config);
   } else if (providerName === 'mock') {
-     provider = new MockProvider({ demoMode: opts.demoMode });
+     provider = new MockProvider({ demoMode: opts.demoMode, captureMode: config.captureMode });
   } else {
      const KNOWN_PROVIDERS = ['mock', 'dry-run', 'gemini', 'openrouter', 'claude-code', 'opencode-go', 'anthropic', 'openai', 'ollama', 'local'];
      console.error(chalk.red(`Unknown provider: "${providerName}". Valid providers: ${KNOWN_PROVIDERS.join(', ')}`));

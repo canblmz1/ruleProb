@@ -1,28 +1,50 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { execa } from 'execa';
-import { ActionPlan, ExecutorResult, AgentAction } from '../types/index.js';
+import { ActionPlan, ExecutorResult, AgentAction, VirtualOp } from '../types/index.js';
 import { getEnv } from '../config/env.js';
 
 const DEFAULT_ACTION_TIMEOUT_MS = 3000;
 
-export async function executeActionPlan(sandboxDir: string, plan: ActionPlan): Promise<ExecutorResult> {
+export interface ExecuteOptions {
+  captureMode?: boolean;
+}
+
+export async function executeActionPlan(
+  sandboxDir: string,
+  plan: ActionPlan,
+  opts: ExecuteOptions = {}
+): Promise<ExecutorResult> {
   const result: ExecutorResult = {
     success: true,
     changedFiles: [],
     commands: [],
     errors: [],
-    evidence: []
+    evidence: [],
+    virtualOps: [],
   };
 
   for (const action of plan.actions) {
-    await executeSingleAction(sandboxDir, action, result);
+    await executeSingleAction(sandboxDir, action, result, opts.captureMode ?? false);
   }
 
   return result;
 }
 
-async function executeSingleAction(sandboxDir: string, action: AgentAction, result: ExecutorResult) {
+function classifyCommand(cmd: string): VirtualOp['classification'] {
+  if (/\b(rm|dd|mkfs|chmod|chown)\b/.test(cmd)) return 'destructive';
+  if (/\b(curl|wget|nc|netcat|ssh|scp)\b/.test(cmd)) return 'network';
+  if (/\b(git\s+push|(pnpm|npm|yarn|bun)\s+publish)\b/.test(cmd)) return 'publish';
+  if (/\bsudo\b/.test(cmd)) return 'privilege';
+  return 'other';
+}
+
+async function executeSingleAction(
+  sandboxDir: string,
+  action: AgentAction,
+  result: ExecutorResult,
+  captureMode: boolean
+) {
   try {
     if (action.type === 'write_file' || action.type === 'append_file' || action.type === 'delete_file') {
       const safeRelativePath = getSafeRelativePath(action.path, sandboxDir);
@@ -86,11 +108,28 @@ async function executeSingleAction(sandboxDir: string, action: AgentAction, resu
 
     } else if (action.type === 'run_command') {
       if (!isCommandAllowed(action.command)) {
-        const blk = `BLOCKED: ${action.command}`;
-        result.commands.push(blk);
-        result.errors.push(`Blocked dangerous command: ${action.command}`);
-        result.evidence.push(`- Blocked command: ${action.command} because it is forbidden`);
-        result.success = false;
+        if (captureMode) {
+          // Capture & analyze mode: record the attempt as a virtual op instead of hard-blocking
+          const classification = classifyCommand(action.command);
+          const kind: VirtualOp['kind'] = classification === 'network' ? 'network' : 'command';
+          result.virtualOps.push({
+            kind,
+            detail: action.command,
+            classification,
+            executed: false,
+          });
+          result.evidence.push(`- Captured (not executed): ${action.command} [${classification}]`);
+          // Do NOT set success=false here; the forbidden_command assertion will still
+          // catch it by inspecting evidence/commands. Execution continues.
+        } else {
+          // Default hard-block — preserves existing behavior
+          const blk = `BLOCKED: ${action.command}`;
+          result.commands.push(blk);
+          result.errors.push(`Blocked dangerous command: ${action.command}`);
+          result.evidence.push(`- Blocked command: ${action.command} because it is forbidden`);
+          result.success = false;
+          return;
+        }
         return;
       }
 

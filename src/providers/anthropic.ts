@@ -110,7 +110,7 @@ export class AnthropicProvider {
       finalAnswer = actionPlan.finalAnswer || '';
 
       if (!this.config.noExecuteActions) {
-        execResult = await executeActionPlan(sandboxDir, actionPlan);
+        execResult = await executeActionPlan(sandboxDir, actionPlan, { captureMode: this.config.captureMode });
         rawOutput += '\n\nEvidence:\n' + execResult.evidence.join('\n');
         if (execResult.errors.length > 0) {
           rawOutput += '\n\nErrors:\n' + execResult.errors.join('\n');
@@ -133,7 +133,8 @@ export class AnthropicProvider {
       rawOutput,
       changedFiles,
       changedFileContents,
-      commands: execResult?.commands || []
+      commands: execResult?.commands || [],
+      virtualOps: execResult?.virtualOps || []
     };
   }
 }

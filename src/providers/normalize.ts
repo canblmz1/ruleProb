@@ -8,6 +8,7 @@ export function normalizeProviderResult(result: Partial<ProviderResult>): Provid
     changedFiles: result.changedFiles || [],
     changedFileContents: result.changedFileContents || {},
     commands: result.commands || [],
-    rawOutput: result.rawOutput || ""
+    rawOutput: result.rawOutput || "",
+    virtualOps: result.virtualOps || [],
   };
 }
